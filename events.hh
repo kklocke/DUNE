@@ -4,6 +4,7 @@
 #include <cmath>
 #include <assert.h>
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
@@ -39,7 +40,29 @@ Path randPath(float maxLeng) {
 	return Path(myLength, myTheta, myPhi);
 }
 
-/* This class will describe naive events, wherein there is a 
+
+class wireArray
+{
+    vector <Point> startPoints;
+    vector <Point> endPoints;
+};
+
+vector <int> crossings(wireArray myArr, Point p1, Point p2)
+{
+    // figure out which lines are crossed in the wire array
+    vector <int> myCross;
+
+    return myCross;
+}
+
+class wireLayer
+{
+    wireArray vertical;
+    wireArray lSlant;
+    wireArray rSlant;
+};
+
+/* This class will describe naive events, wherein there is a
  * single well defined event vertex and two variable length
  * paths leading off from this and their angular orientation.
  */
