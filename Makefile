@@ -1,4 +1,4 @@
-CXXFLAGS = -std=c++14 -Wall
+CXXFLAGS = -std=c++11 -Wall
 
 all : projection
 
@@ -6,6 +6,6 @@ projection : projection.o
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
 clean :
-	rm -f test-maze *.o *~
+	rm -f *.o *~
 
 .PHONY : all clean
