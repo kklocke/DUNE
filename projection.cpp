@@ -13,7 +13,7 @@ int main () {
 	// project it --> time slices
 	// figure out how to dispay it
 	// figure out how to apply the current method to it.
-	int dims [3] = {7, 7, 20};
+	int dims [3] = {50, 50, 50};
 	NaiveEvent myEvent = randEvent(dims);
 	// print vertex
 	cout << "Vertex: " << myEvent.vertex.x << "\t" << myEvent.vertex.y << "\t" << myEvent.vertex.z << endl;
@@ -27,8 +27,8 @@ int main () {
 	cout << "\tPhi: " << myEvent.path2.phi << endl;
 	// print path1
 	// print path2
-	wireArray test = wireArray(3., 45., 7., 7., 0.);
-	wireLayer testLayer = wireLayer(7., 7., 0., 3.);
+	wireArray test = wireArray(3., 45., 50., 50., 0.);
+	wireLayer testLayer = wireLayer(50., 50., 0., 3.);
 	Point endPath = myEvent.vertex + myEvent.path1.path2vec();
 	cout << "My end path: ";
 	endPath.printPt();
@@ -36,14 +36,14 @@ int main () {
 
 	vector <vector <int>> allCross = testLayer.allCrossings(myEvent.vertex, endPath);
 
-	vector <vector <Path>> myPaths = myEvent.partitionEvent(5, 20);
-	for (int i = 0; i < (int)myPaths[0].size(); i++) {
-		cout << "Path: ";
-		myPaths[0][i].vertex.printPt();
-		cout << "\t";
-		(myPaths[0][i].vertex + myPaths[0][i].path2vec()).printPt();
-		cout << "\n";
-	}
+	// vector <vector <Path>> myPaths = myEvent.partitionEvent(5, 20);
+	// for (int i = 0; i < (int)myPaths[0].size(); i++) {
+	// 	cout << "Path: ";
+	// 	myPaths[0][i].vertex.printPt();
+	// 	cout << "\t";
+	// 	(myPaths[0][i].vertex + myPaths[0][i].path2vec()).printPt();
+	// 	cout << "\n";
+	// }
 
 	ofstream myfile;
 	myfile.open("displayTest.txt");
@@ -67,17 +67,36 @@ int main () {
 	myfile.close();
 
 	vector <vector <int>> myMatrix = testLayer.geoMatrix();
-	for (int i = 0; i < (int)myMatrix.size(); i++) {
-		for (int j = 0; j < (int)myMatrix[i].size(); j++) {
-			if (myMatrix[i][j] == 1) {
-				cout << "0" << " ";
-			}
-			else {
-				cout << "- ";
-			}
-		}
-		cout << endl;
+	// for (int i = 0; i < (int)myMatrix.size(); i++) {
+	// 	for (int j = 0; j < (int)myMatrix[i].size(); j++) {
+	// 		if (myMatrix[i][j] == 1) {
+	// 			cout << "0" << " ";
+	// 		}
+	// 		else {
+	// 			cout << "- ";
+	// 		}
+	// 	}
+	// 	cout << endl;
+	// }
+	vector <float> signals = testLayer.signalVec(myEvent.path1);
+	for (int i = 0; i < (int)signals.size(); i++) {
+		cout << signals[i] << " ";
 	}
+	cout << endl;
+	vector <float> trueSig = solveTrue(signals, myMatrix);
+	cout << "True Signal\n";
+	ofstream pointsFile;
+	pointsFile.open("displayPoints.txt");
+	for (int i = 0; i < (int)trueSig.size(); i++) {
+		if (trueSig[i] > 0.1) {
+			pointsFile << testLayer.grids[i].x << "\t" << testLayer.grids[i].y << endl;
+			cout << trueSig[i] << " ";
+		}
+	}
+	pointsFile.close();
+	cout << endl;
+
+
 
 	return 0;
 }

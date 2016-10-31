@@ -7,9 +7,10 @@
 #include <vector>
 #include <map>
 #include <list>
+#include <armadillo>
 
 using namespace std;
-
+using namespace arma;
 
 class Point
 {
@@ -325,6 +326,7 @@ public:
 	float length;
 	float height;
 	float z;
+	vector <Point> grids;
 	wireLayer(float h, float l, float z, float pitch) : pitch(pitch), length(l), height(h), z(z) {
 		vertical = wireArray(pitch, 90., l, h, z);
 		lSlant = wireArray(pitch, 45., l, h, z);
@@ -451,6 +453,7 @@ public:
 			myMatrix.push_back(temp);
 		}
 		int count = 0;
+		this->grids.clear();
 		for (map<Point, vector<int>>::iterator j = gridPts.begin(); j != gridPts.end(); j++) {
 			//j->first = key
 			//j->second = vertical
@@ -458,6 +461,7 @@ public:
 			// cout << "Intersection Point: ";
 			// myPt.printPt();
 			// cout <<"\n";
+			this->grids.push_back(myPt);
 			vector<int> my3 = j->second;
 			if (my3[0] != -1) {
 				myMatrix[my3[0]][count] = 1;
@@ -472,10 +476,46 @@ public:
 		}
 		return myMatrix;
 	}
+	vector <float> signalVec(Path p) {
+		int vDim = this->vertical.startPoints.size();
+		int lDim = this->lSlant.startPoints.size();
+		int rDim = this->rSlant.startPoints.size();
+		vector <int> crossV = crossings(this->vertical, p.vertex, (p.vertex + p.path2vec()));
+		vector <int> crossL = crossings(this->lSlant, p.vertex, (p.vertex + p.path2vec()));
+		vector <int> crossR = crossings(this->rSlant, p.vertex, (p.vertex + p.path2vec()));
+		vector <float> sigVec(vDim + lDim + rDim, 0.);
+		for (int i = 0; i < (int)crossV.size(); i++) {
+			sigVec[crossV[i]] = 1.;
+		}
+		for (int i = 0; i < (int)crossL.size(); i++) {
+			sigVec[crossL[i] + vDim] = 1.;
+		}
+		for (int i = 0; i < (int)crossR.size(); i++) {
+			sigVec[crossR[i] + vDim + lDim] = 1.;
+		}
+		return sigVec;
+	}
 };
 
 
-
+vector <float> solveTrue(vector <float> mySig, vector <vector <int>> geoMat) {
+	mat geo(geoMat.size(), geoMat[0].size());
+	vec sig(mySig.size());
+	for (int i = 0; i < (int)geoMat.size(); i++) {
+		for (int j = 0; j < (int)geoMat[i].size(); j++) {
+			geo(i, j) = geoMat[i][j];
+		}
+	}
+	for (int i = 0; i < (int)mySig.size(); i++) {
+		sig[i] = mySig[i];
+	}
+	vec trueSig = solve(geo, sig);
+	vector <float> trueSignal;
+	for (int i = 0; i < (int)geoMat[0].size(); i++) {
+		trueSignal.push_back(trueSig[i]);
+	}
+	return trueSignal;
+}
 
 /* This class will describe naive events, wherein there is a
  * single well defined event vertex and two variable length

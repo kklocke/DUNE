@@ -37,4 +37,14 @@ pathY = [float(vertex.split()[1]), float(pathEnd.split()[1])]
 
 plt.plot(pathX, pathY, color='red')
 
+f = open("displayPoints.txt", 'r')
+
+for line in f:
+    line = line.strip()
+    x = float(line.split()[0])
+    y = float(line.split()[1])
+    plt.plot(x,y, marker='o', color='green')
+f.close()
+
+
 plt.show()
