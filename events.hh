@@ -272,10 +272,10 @@ Point intersection(Point p1_s, Point p1_e, Point p2_s, Point p2_e) {
 	Point vec1 = p1_e - p1_s;
 	Point vec2 = p2_e - p2_s;
 	Point diff_s = p1_s - p2_s;
-	float s = (diff_s.y - (vec1.y / vec1.x)*diff_s.x)/(vec2.y - (vec1.y * vec2.x / vec1.x));
-	float t = (s * vec2.x - diff_s.x) / vec1.x;
-	if (p1_s + vec1.scalarMult(s) == p2_s + vec2.scalarMult(t)) {
-		return p1_s + vec1.scalarMult(s);
+	float t = ((diff_s.y/vec2.y) - (diff_s.x/vec2.x))/((vec1.x / vec2.x) - (vec1.y/vec2.y));
+	float s = (diff_s.x + t * vec1.x) / vec2.x;
+	if (p1_s + vec1.scalarMult(t) == p2_s + vec2.scalarMult(s)) {
+		return p1_s + vec1.scalarMult(t);
 	}
 	return Point(-1., -1., -1.);
 }
@@ -308,6 +308,7 @@ public:
 		int lSize = lSlant.startPoints.size();
 		int rSize = rSlant.startPoints.size();
 		int numRows = vSize + lSize + rSize;
+		cout << "NUM ROWS: " << numRows << endl;
 		vector <vector <int>> myMatrix;
 		map<Point, vector<int>> gridPts;
 
@@ -324,7 +325,7 @@ public:
 					continue;
 				}
 				else {
-					intPoint.round(3);
+					intPoint.round(2);
 					if (gridPts.find(intPoint) == gridPts.end())
 					{
 						int wireRefs [3] = {wires[j], i, -1};
@@ -356,7 +357,7 @@ public:
 					continue;
 				}
 				else {
-					intPoint.round(3);
+					intPoint.round(2);
 					if (gridPts.find(intPoint) == gridPts.end())
 					{
 						int wireRefs [3] = {wires[j], -1, i};
@@ -384,11 +385,14 @@ public:
 				Point refp1 = lSlant.startPoints[wires[j]];
 				Point refp2 = lSlant.endPoints[wires[j]];
 				Point intPoint = intersection(p1, p2, refp1, refp2);
+				cout << "Intersection Point: ";
+				intPoint.printPt();
+				cout << endl;
 				if (intPoint == Point(-1., -1., -1.)) {
 					continue;
 				}
 				else {
-					intPoint.round(3);
+					intPoint.round(2);
 					if (gridPts.find(intPoint) == gridPts.end())
 					{
 						int wireRefs [3] = {-1, wires[j], i};
@@ -408,6 +412,7 @@ public:
 			}
 		}
 		int numCols = gridPts.size();
+		cout << "NUM COLS: " << numCols << endl;
 		for (int i = 0; i < numRows; i++) {
 			vector <int> temp(numCols, 0);
 			myMatrix.push_back(temp);
