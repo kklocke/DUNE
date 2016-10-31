@@ -5,6 +5,8 @@
 #include <assert.h>
 #include <iostream>
 #include <vector>
+#include <map>
+#include <list>
 
 using namespace std;
 
@@ -38,8 +40,36 @@ public:
 		this->y = p.y;
 		this->z = p.z;
 	}
+	bool operator<(const Point & p) const {
+		if (x < p.x) {
+			return true;
+		}
+		else if (x == p.x) {
+			if (y < p.y) {
+				return true;
+			}
+			else if (y == p.y) {
+				if (z < p.z) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
 	bool operator==(const Point& p) {
-		return ((this->x == p.x) && (this->y == p.y) && (this->z == p.z));
+		return ((fabs(this->x - p.x) < 0.001) && (fabs(this->y - p.y) < 0.001) && (fabs(this->z - p.z) < 0.001));
+	}
+	void round(int decPlace) {
+		float delta = .5 * pow(10, -decPlace);
+		float newX = ceil((x - delta)*pow(10, decPlace))/ pow(10, decPlace);
+		float newY = ceil((y - delta)*pow(10, decPlace))/ pow(10, decPlace);
+		float newZ = ceil((z - delta)*pow(10, decPlace))/ pow(10, decPlace);
+		x = newX;
+		y = newY;
+		z = newZ;
+	}
+	Point scalarMult(float f) {
+		return Point(x * f, y * f, z*f);
 	}
 };
 
@@ -49,8 +79,9 @@ public:
 	float length;
 	float theta; // radial about the beam direction (0 to pi)
 	float phi; // in plane with the beam / perp to the wire planes (0 to pi/2)
-	Path(float r, float theta, float phi) : length(r), theta(theta), phi(phi) {}
-	Path() : length(1.), theta(0.), phi(0.) {}
+	Point vertex;
+	Path(float r, float theta, float phi, Point v) : length(r), theta(theta), phi(phi), vertex(v) {}
+	Path() : length(1.), theta(0.), phi(0.), vertex(Point(0., 0., 0.)) {}
 	~Path() {};
 	Point path2vec() {
 		Point myVec;
@@ -59,31 +90,57 @@ public:
 		myVec.z = length * sin(phi) * cos(theta);
 		return myVec;
 	}
+	Path scale(float f) {
+		return Path(length * f, theta, phi, vertex);
+	}
 };
+
+
 
 Path randPath(float maxLeng) {
 	// generate a random length between 0 and maxlength
 	float myLength = maxLeng * (float(rand()) / float(RAND_MAX));
 	float myTheta = M_PI * (float(rand()) / float(RAND_MAX));
 	float myPhi = 0.5 * M_PI * (float(rand()) / float(RAND_MAX));
-	return Path(myLength, myTheta, myPhi);
+	Point orig = Point(0., 0., 0.);
+	return Path(myLength, myTheta, myPhi, orig);
 }
 
 
 class wireArray
 {
 public:
-	int pitch; // mm
+	float pitch; // mm
 	float angle; // angle with respect to x axis
+	float height; // y dim
+	float length; // x dim
+	float z; // z posn
     vector<Point> startPoints;
     vector<Point> endPoints;
-	wireArray(float pitch, float angle, float l, float h, float z) : pitch(pitch), angle(angle)
-	{
+	wireArray(float pitch, float angle, float l, float h, float z) : pitch(pitch), angle(angle), height(h), length(l), z(z) {
 		float xPos = 0., yPos = h;
-		float xIncr = pitch / sin(M_PI * angle / 180);
-		float yIncr = pitch / cos(M_PI * angle / 180);
+		float xIncr = pitch / fabs(sin(M_PI * angle / 180));
+		float yIncr = pitch / fabs(cos(M_PI * angle / 180));
 		double slope = tan(M_PI * angle / 180.);
-		if (slope > 0)
+		if (int(angle) == 90)
+		{
+			while (xPos < l)
+			{
+				startPoints.push_back(Point(xPos, h, z));
+				endPoints.push_back(Point(xPos, 0, z));
+				xPos += xIncr;
+			}
+		}
+		else if (angle == 0.)
+		{
+			while (yPos > 0)
+			{
+				startPoints.push_back(Point(l, yPos, z));
+				endPoints.push_back(Point(0, yPos, z));
+				yPos -= yIncr;
+			}
+		}
+		else if (slope > 0)
 		{
 			while (xPos < l)
 			{
@@ -122,6 +179,7 @@ public:
 		{
 			while (xPos < h)
 			{
+				startPoints.push_back(Point(xPos, yPos, z));
 				float xInt = xPos - h / slope;
 				if ((xInt > 0) && (xInt < h))
 				{
@@ -138,6 +196,7 @@ public:
 			yPos = 0.;
 			while (yPos < l)
 			{
+				startPoints.push_back(Point(0, yPos, z));
 				float xInt = xPos - yPos / slope;
 				if ((xInt > 0) && (xInt < l))
 				{
@@ -151,7 +210,8 @@ public:
 				yPos += yIncr;
 			}
 		}
-	};
+	}
+	wireArray() : pitch(0.), angle(0.), height(0.), length(0.), z(0.) {};
 };
 
 
@@ -180,7 +240,7 @@ vector <int> crossings(wireArray myArr, Point p1, Point p2)
 		{
 			firstWire = i;
 		}
-		if ((slope < 0) && (p1.y <= refY_1) && (firstWire == -1))
+		else if ((slope < 0) && (p1.y <= refY_1) && (firstWire == -1))
 		{
 			firstWire = i;
 		}
@@ -188,7 +248,7 @@ vector <int> crossings(wireArray myArr, Point p1, Point p2)
 		{
 			lastWire = i;
 		}
-		if ((slope < 0) && (p2.y < refY_2) && (lastWire == -1))
+		else if ((slope < 0) && (p2.y < refY_2) && (lastWire == -1))
 		{
 			lastWire = i;
 		}
@@ -200,18 +260,179 @@ vector <int> crossings(wireArray myArr, Point p1, Point p2)
 	cout << "First Wire " << firstWire << endl;
 	cout << "Last Wire " << lastWire << endl;
 
-	for (int i = min(firstWire, lastWire); i < max(lastWire, firstWire); i++) {
+	for (int i = min(firstWire, lastWire); i < max(lastWire, firstWire); i++)
+	{
 		myCross.push_back(i);
 	}
     return myCross;
 }
 
+
+Point intersection(Point p1_s, Point p1_e, Point p2_s, Point p2_e) {
+	Point vec1 = p1_e - p1_s;
+	Point vec2 = p2_e - p2_s;
+	Point diff_s = p1_s - p2_s;
+	float s = (diff_s.y - (vec1.y / vec1.x)*diff_s.x)/(vec2.y - (vec1.y * vec2.x / vec1.x));
+	float t = (s * vec2.x - diff_s.x) / vec1.x;
+	if (p1_s + vec1.scalarMult(s) == p2_s + vec2.scalarMult(t)) {
+		return p1_s + vec1.scalarMult(s);
+	}
+	return Point(-1., -1., -1.);
+}
+
 class wireLayer
 {
-    wireArray vertical;
-    wireArray lSlant;
-    wireArray rSlant;
+public:
+    wireArray vertical; // theta = Pi/2
+    wireArray lSlant; // theta = Pi/4
+    wireArray rSlant; // theta = -Pi/4
+	float pitch;
+	float length;
+	float height;
+	float z;
+	wireLayer(float h, float l, float z, float pitch) : pitch(pitch), length(l), height(h), z(z) {
+		vertical = wireArray(pitch, 90., l, h, z);
+		lSlant = wireArray(pitch, 45., l, h, z);
+		rSlant = wireArray(pitch, -45., l, h, z);
+	}
+	vector <vector <int>> allCrossings(Point p1, Point p2) {
+		vector <vector <int>> all3;
+		all3.push_back(crossings(vertical, p1, p2));
+		all3.push_back(crossings(lSlant, p1, p2));
+		all3.push_back(crossings(rSlant, p1, p2));
+		return all3;
+	}
+	vector <vector <int>> geoMatrix()
+	{
+		int vSize = vertical.startPoints.size();
+		int lSize = lSlant.startPoints.size();
+		int rSize = rSlant.startPoints.size();
+		int numRows = vSize + lSize + rSize;
+		vector <vector <int>> myMatrix;
+		map<Point, vector<int>> gridPts;
+
+		for (int i = 0; i < (int)lSlant.startPoints.size(); i++)
+		{
+			Point p1 = lSlant.startPoints[i];
+			Point p2 = lSlant.endPoints[i];
+			vector <int> wires = crossings(vertical, p1, p2);
+			for (int j = 0; j < (int)wires.size(); j++) {
+				Point refp1 = vertical.startPoints[wires[j]];
+				Point refp2 = vertical.endPoints[wires[j]];
+				Point intPoint = intersection(p1, p2, refp1, refp2);
+				if (intPoint == Point(-1., -1., -1.)) {
+					continue;
+				}
+				else {
+					intPoint.round(3);
+					if (gridPts.find(intPoint) == gridPts.end())
+					{
+						int wireRefs [3] = {wires[j], i, -1};
+						vector<int> newEntry;
+						newEntry.assign(wireRefs, wireRefs+3);
+						gridPts[intPoint] = newEntry;
+					}
+					else {
+						if (gridPts[intPoint][0] == -1) {
+							gridPts[intPoint][0] = wires[j];
+						}
+						if (gridPts[intPoint][1] == -1) {
+							gridPts[intPoint][1] = i;
+						}
+					}
+				}
+			}
+		}
+		for (int i = 0; i < (int)rSlant.startPoints.size(); i++)
+		{
+			Point p1 = rSlant.startPoints[i];
+			Point p2 = rSlant.endPoints[i];
+			vector <int> wires = crossings(vertical, p1, p2);
+			for (int j = 0; j < (int)wires.size(); j++) {
+				Point refp1 = vertical.startPoints[wires[j]];
+				Point refp2 = vertical.endPoints[wires[j]];
+				Point intPoint = intersection(p1, p2, refp1, refp2);
+				if (intPoint == Point(-1., -1., -1.)) {
+					continue;
+				}
+				else {
+					intPoint.round(3);
+					if (gridPts.find(intPoint) == gridPts.end())
+					{
+						int wireRefs [3] = {wires[j], -1, i};
+						vector<int> newEntry;
+						newEntry.assign(wireRefs, wireRefs+3);
+						gridPts[intPoint] = newEntry;
+					}
+					else {
+						if (gridPts[intPoint][0] == -1) {
+							gridPts[intPoint][0] = wires[j];
+						}
+						if (gridPts[intPoint][2] == -1) {
+							gridPts[intPoint][2] = i;
+						}
+					}
+				}
+			}
+		}
+		for (int i = 0; i < (int)rSlant.startPoints.size(); i++)
+		{
+			Point p1 = rSlant.startPoints[i];
+			Point p2 = rSlant.endPoints[i];
+			vector <int> wires = crossings(vertical, p1, p2);
+			for (int j = 0; j < (int)wires.size(); j++) {
+				Point refp1 = lSlant.startPoints[wires[j]];
+				Point refp2 = lSlant.endPoints[wires[j]];
+				Point intPoint = intersection(p1, p2, refp1, refp2);
+				if (intPoint == Point(-1., -1., -1.)) {
+					continue;
+				}
+				else {
+					intPoint.round(3);
+					if (gridPts.find(intPoint) == gridPts.end())
+					{
+						int wireRefs [3] = {-1, wires[j], i};
+						vector<int> newEntry;
+						newEntry.assign(wireRefs, wireRefs+3);
+						gridPts[intPoint] = newEntry;
+					}
+					else {
+						if (gridPts[intPoint][1] == -1) {
+							gridPts[intPoint][1] = wires[j];
+						}
+						if (gridPts[intPoint][2] == -1) {
+							gridPts[intPoint][2] = i;
+						}
+					}
+				}
+			}
+		}
+		int numCols = gridPts.size();
+		for (int i = 0; i < numRows; i++) {
+			vector <int> temp(numCols, 0);
+			myMatrix.push_back(temp);
+		}
+		int count = 0;
+		for (map<Point, vector<int>>::iterator j = gridPts.begin(); j != gridPts.end(); j++) {
+			//j->first = key
+			//j->second = vertical
+			vector<int> my3 = j->second;
+			if (my3[0] != -1) {
+				myMatrix[my3[0]][count] = 1;
+			}
+			if (my3[1] != -1) {
+				myMatrix[my3[0] + vSize][count] = 1;
+			}
+			if (my3[0] != -1) {
+				myMatrix[my3[0] + vSize + lSize][count] = 1;
+			}
+		}
+		return myMatrix;
+	}
 };
+
+
+
 
 /* This class will describe naive events, wherein there is a
  * single well defined event vertex and two variable length
@@ -226,6 +447,7 @@ class NaiveEvent
 		NaiveEvent(Point v, Path p1, Path p2) : vertex(v), path1(p1), path2(p2) {}
 		NaiveEvent() : vertex(Point()), path1(Path()), path2(Path()) {}
 		~NaiveEvent() {};
+		vector <vector <Path>> partitionEvent(int zPlanes, int zDim);
 		// some attributes and functions here here
 	private:
 		// more attributes and functions here
@@ -236,6 +458,58 @@ NaiveEvent randEvent(int dims[]) {
 	float y = float(dims[1]) * float(rand()) / float(RAND_MAX);
 	float z = float(dims[2]) * float(rand()) / float(RAND_MAX);
 	Point v = Point(x, y, z);
-	float maxLeng = float(dims[0])  - x; // Figure out which dim is appropriate later
-	return NaiveEvent(v, randPath(maxLeng), randPath(maxLeng));
+	float maxX = float(dims[0]) - x;
+	float maxY = float(dims[1]) - y;
+	float maxZ = float(dims[2]) - z;
+	float maxLeng = min(min(maxX, maxY), maxZ); // Figure out which dim is appropriate later
+	NaiveEvent myEvent = NaiveEvent(v, randPath(maxLeng), randPath(maxLeng));
+	myEvent.path2.vertex = v;
+	myEvent.path1.vertex = v;
+	return myEvent;
+}
+
+vector <vector <Path>> NaiveEvent::partitionEvent(int zPlanes, int zDim) {
+	vector <float> zPosns;
+	float zIncr = float(zDim) / float(zPlanes - 1);
+	cout << "zIncr: " << zIncr << endl;
+	float currPos = 0;
+	while (currPos <= zDim)
+	{
+		cout << "zPosn: " << currPos << endl;
+		zPosns.push_back(currPos);
+		currPos += zIncr;
+	}
+	// split path 1
+	Point endPt1 = vertex + path1.path2vec();
+	Point startPt1;
+	int dirSign = 1;
+	if (vertex.z < endPt1.z) {
+		startPt1 = vertex;
+	}
+	else {
+		startPt1 = endPt1;
+		endPt1 = vertex;
+		dirSign = -1;
+	}
+	int firstQuad = int(startPt1.z / zIncr);
+	int lastQuad = int(endPt1.z / zIncr);
+	vector <Path> p1_split;
+	Point segStart = startPt1;
+	float zLength = fabs(path1.path2vec().z);
+	while (firstQuad <= lastQuad)
+	{
+		float endZ = min((firstQuad + 1)*zIncr, endPt1.z);
+		cout << "END Z: " << endZ << endl;
+		cout << "SegStart z: " << segStart.z << endl;
+		Path myPath = path1.scale(dirSign *((endZ - segStart.z) / zLength));
+		myPath.vertex = segStart;
+		p1_split.push_back(myPath);
+		segStart = segStart + myPath.path2vec();
+		firstQuad++;
+	}
+	// split path 2
+	// ignoring path 2 for now
+	vector <vector <Path>> splitPaths;
+	splitPaths.push_back(p1_split);
+	return splitPaths;
 }
