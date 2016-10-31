@@ -13,7 +13,7 @@ int main () {
 	// project it --> time slices
 	// figure out how to dispay it
 	// figure out how to apply the current method to it.
-	int dims [3] = {50, 50, 50};
+	int dims [3] = {7, 7, 20};
 	NaiveEvent myEvent = randEvent(dims);
 	// print vertex
 	cout << "Vertex: " << myEvent.vertex.x << "\t" << myEvent.vertex.y << "\t" << myEvent.vertex.z << endl;
@@ -27,35 +27,57 @@ int main () {
 	cout << "\tPhi: " << myEvent.path2.phi << endl;
 	// print path1
 	// print path2
-	wireArray test = wireArray(3., 45., 50., 50., 0.);
-	for (int i = 0; i < int(test.startPoints.size()); i++) {
-		cout << "Wire " << i << endl;
-		cout << "\t";
-		test.startPoints[i].printPt();
-		cout << "\n\t";
-		test.endPoints[i].printPt();
-		cout << "\n";
-	}
+	wireArray test = wireArray(3., 45., 7., 7., 0.);
+	wireLayer testLayer = wireLayer(7., 7., 0., 3.);
 	Point endPath = myEvent.vertex + myEvent.path1.path2vec();
 	cout << "My end path: ";
 	endPath.printPt();
 
-	cout << "\nLines crossed by the first path from my event" << endl;
 
-	vector <int> myCrosses = crossings(test, myEvent.vertex, endPath);
-	for (int i = 0; i < (int)myCrosses.size(); i++) {
-		cout << myCrosses[i] << endl;
+	vector <vector <int>> allCross = testLayer.allCrossings(myEvent.vertex, endPath);
+
+	vector <vector <Path>> myPaths = myEvent.partitionEvent(5, 20);
+	for (int i = 0; i < (int)myPaths[0].size(); i++) {
+		cout << "Path: ";
+		myPaths[0][i].vertex.printPt();
+		cout << "\t";
+		(myPaths[0][i].vertex + myPaths[0][i].path2vec()).printPt();
+		cout << "\n";
 	}
 
 	ofstream myfile;
 	myfile.open("displayTest.txt");
 	myfile << myEvent.vertex.x << "\t" << myEvent.vertex.y << "\n";
 	myfile << endPath.x << "\t" << endPath.y << "\n";
-	for (int i = 0; i < (int)test.startPoints.size(); i++)
+	for (int i = 0; i < (int)testLayer.vertical.startPoints.size(); i++)
 	{
-		myfile << test.startPoints[i].x << "\t" << test.startPoints[i].y << "\n";
-		myfile << test.endPoints[i].x << "\t" << test.endPoints[i].y << "\n";
+		myfile << testLayer.vertical.startPoints[i].x << "\t" << testLayer.vertical.startPoints[i].y << "\n";
+		myfile << testLayer.vertical.endPoints[i].x << "\t" << testLayer.vertical.endPoints[i].y << "\n";
+	}
+	for (int i = 0; i < (int)testLayer.lSlant.startPoints.size(); i++)
+	{
+		myfile << testLayer.lSlant.startPoints[i].x << "\t" << testLayer.lSlant.startPoints[i].y << "\n";
+		myfile << testLayer.lSlant.endPoints[i].x << "\t" << testLayer.lSlant.endPoints[i].y << "\n";
+	}
+	for (int i = 0; i < (int)testLayer.rSlant.startPoints.size(); i++)
+	{
+		myfile << testLayer.rSlant.startPoints[i].x << "\t" << testLayer.rSlant.startPoints[i].y << "\n";
+		myfile << testLayer.rSlant.endPoints[i].x << "\t" << testLayer.rSlant.endPoints[i].y << "\n";
 	}
 	myfile.close();
+
+	vector <vector <int>> myMatrix = testLayer.geoMatrix();
+	for (int i = 0; i < (int)myMatrix.size(); i++) {
+		for (int j = 0; j < (int)myMatrix[i].size(); j++) {
+			if (myMatrix[i][j] == 1) {
+				cout << "0" << " ";
+			}
+			else {
+				cout << "- ";
+			}
+		}
+		cout << endl;
+	}
+
 	return 0;
 }

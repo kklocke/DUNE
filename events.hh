@@ -59,6 +59,9 @@ public:
 	bool operator==(const Point& p) {
 		return ((fabs(this->x - p.x) < 0.001) && (fabs(this->y - p.y) < 0.001) && (fabs(this->z - p.z) < 0.001));
 	}
+	bool operator!=(const Point& p) {
+		return !(*this == p);
+	}
 	void round(int decPlace) {
 		float delta = .5 * pow(10, -decPlace);
 		float newX = ceil((x - delta)*pow(10, decPlace))/ pow(10, decPlace);
@@ -228,6 +231,11 @@ vector <int> crossings(wireArray myArr, Point p1, Point p2)
     vector <int> myCross;
 	int firstWire = -1;
 	int lastWire = -1;
+	// cout << "my points to cross: \n\t";
+	// p1.printPt();
+	// cout << "\n\t";
+	// p2.printPt();
+	// cout << endl;
 	for (int i = 0; i < (int)myArr.endPoints.size(); i++)
 	{
 		Point refPt1 = myArr.startPoints[i];
@@ -257,13 +265,16 @@ vector <int> crossings(wireArray myArr, Point p1, Point p2)
 			break;
 		}
 	}
-	cout << "First Wire " << firstWire << endl;
-	cout << "Last Wire " << lastWire << endl;
-
+	if (lastWire == -1) {
+		lastWire = (int)myArr.endPoints.size();
+	}
+	// cout << "FIRST WIRE: " << firstWire << "\tLAST WIRE: " << lastWire << endl;
 	for (int i = min(firstWire, lastWire); i < max(lastWire, firstWire); i++)
 	{
 		myCross.push_back(i);
+		// cout << i << "\t";
 	}
+	// cout << endl;
     return myCross;
 }
 
@@ -272,6 +283,30 @@ Point intersection(Point p1_s, Point p1_e, Point p2_s, Point p2_e) {
 	Point vec1 = p1_e - p1_s;
 	Point vec2 = p2_e - p2_s;
 	Point diff_s = p1_s - p2_s;
+	if (fabs(vec1.x) < 0.0001) {
+		Point newPt = Point(p1_s.x, 0, p1_s.z);
+		float scale = fabs(diff_s.x / vec2.x);
+		newPt.y = p2_s.y + scale * vec2.y;
+		return newPt;
+	}
+	if (fabs(vec2.x) < 0.0001) {
+		Point newPt = Point(p2_s.x, 0, p2_s.z);
+		float scale = fabs(diff_s.x / vec1.x);
+		newPt.y = p1_s.y + scale * vec1.y;
+		return newPt;
+	}
+	if (vec1.y == 0) {
+		// there may be a sign error here
+		float yDiff = diff_s.y;
+		float yFrac = yDiff / vec2.y;
+		return p2_s + vec2.scalarMult(yFrac);
+	}
+	if (vec2.y == 0) {
+		// there may be a sign error here
+		float yDiff = diff_s.y;
+		float yFrac = yDiff / vec1.y;
+		return p1_s + vec1.scalarMult(yFrac);
+	}
 	float t = ((diff_s.y/vec2.y) - (diff_s.x/vec2.x))/((vec1.x / vec2.x) - (vec1.y/vec2.y));
 	float s = (diff_s.x + t * vec1.x) / vec2.x;
 	if (p1_s + vec1.scalarMult(t) == p2_s + vec2.scalarMult(s)) {
@@ -308,7 +343,6 @@ public:
 		int lSize = lSlant.startPoints.size();
 		int rSize = rSlant.startPoints.size();
 		int numRows = vSize + lSize + rSize;
-		cout << "NUM ROWS: " << numRows << endl;
 		vector <vector <int>> myMatrix;
 		map<Point, vector<int>> gridPts;
 
@@ -321,11 +355,11 @@ public:
 				Point refp1 = vertical.startPoints[wires[j]];
 				Point refp2 = vertical.endPoints[wires[j]];
 				Point intPoint = intersection(p1, p2, refp1, refp2);
-				if (intPoint == Point(-1., -1., -1.)) {
-					continue;
-				}
-				else {
+				if (intPoint != Point(-1., -1., -1.)) {
 					intPoint.round(2);
+					// cout << "Point found: ";
+					// intPoint.printPt();
+					// cout << endl;
 					if (gridPts.find(intPoint) == gridPts.end())
 					{
 						int wireRefs [3] = {wires[j], i, -1};
@@ -353,11 +387,11 @@ public:
 				Point refp1 = vertical.startPoints[wires[j]];
 				Point refp2 = vertical.endPoints[wires[j]];
 				Point intPoint = intersection(p1, p2, refp1, refp2);
-				if (intPoint == Point(-1., -1., -1.)) {
-					continue;
-				}
-				else {
+				if (intPoint != Point(-1., -1., -1.)) {
 					intPoint.round(2);
+					// cout << "Point found: ";
+					// intPoint.printPt();
+					// cout << endl;
 					if (gridPts.find(intPoint) == gridPts.end())
 					{
 						int wireRefs [3] = {wires[j], -1, i};
@@ -380,19 +414,19 @@ public:
 		{
 			Point p1 = rSlant.startPoints[i];
 			Point p2 = rSlant.endPoints[i];
-			vector <int> wires = crossings(vertical, p1, p2);
+			vector <int> wires = crossings(lSlant, p1, p2);
 			for (int j = 0; j < (int)wires.size(); j++) {
 				Point refp1 = lSlant.startPoints[wires[j]];
 				Point refp2 = lSlant.endPoints[wires[j]];
 				Point intPoint = intersection(p1, p2, refp1, refp2);
-				cout << "Intersection Point: ";
-				intPoint.printPt();
-				cout << endl;
-				if (intPoint == Point(-1., -1., -1.)) {
-					continue;
-				}
-				else {
+				if (intPoint != Point(-1., -1., -1.)) {
 					intPoint.round(2);
+					// cout << "Point found: ";
+					// intPoint.printPt();
+					// cout << endl;
+					if ((intPoint.x <= 0) || (intPoint.y <= 0)) {
+						continue;
+					}
 					if (gridPts.find(intPoint) == gridPts.end())
 					{
 						int wireRefs [3] = {-1, wires[j], i};
@@ -412,7 +446,6 @@ public:
 			}
 		}
 		int numCols = gridPts.size();
-		cout << "NUM COLS: " << numCols << endl;
 		for (int i = 0; i < numRows; i++) {
 			vector <int> temp(numCols, 0);
 			myMatrix.push_back(temp);
@@ -421,16 +454,21 @@ public:
 		for (map<Point, vector<int>>::iterator j = gridPts.begin(); j != gridPts.end(); j++) {
 			//j->first = key
 			//j->second = vertical
+			Point myPt = j->first;
+			// cout << "Intersection Point: ";
+			// myPt.printPt();
+			// cout <<"\n";
 			vector<int> my3 = j->second;
 			if (my3[0] != -1) {
 				myMatrix[my3[0]][count] = 1;
 			}
 			if (my3[1] != -1) {
-				myMatrix[my3[0] + vSize][count] = 1;
+				myMatrix[my3[1] + vSize][count] = 1;
 			}
 			if (my3[0] != -1) {
-				myMatrix[my3[0] + vSize + lSize][count] = 1;
+				myMatrix[my3[2] + vSize + lSize][count] = 1;
 			}
+			count++;
 		}
 		return myMatrix;
 	}
@@ -476,11 +514,11 @@ NaiveEvent randEvent(int dims[]) {
 vector <vector <Path>> NaiveEvent::partitionEvent(int zPlanes, int zDim) {
 	vector <float> zPosns;
 	float zIncr = float(zDim) / float(zPlanes - 1);
-	cout << "zIncr: " << zIncr << endl;
+	// cout << "zIncr: " << zIncr << endl;
 	float currPos = 0;
 	while (currPos <= zDim)
 	{
-		cout << "zPosn: " << currPos << endl;
+		// cout << "zPosn: " << currPos << endl;
 		zPosns.push_back(currPos);
 		currPos += zIncr;
 	}
@@ -504,8 +542,8 @@ vector <vector <Path>> NaiveEvent::partitionEvent(int zPlanes, int zDim) {
 	while (firstQuad <= lastQuad)
 	{
 		float endZ = min((firstQuad + 1)*zIncr, endPt1.z);
-		cout << "END Z: " << endZ << endl;
-		cout << "SegStart z: " << segStart.z << endl;
+		// cout << "END Z: " << endZ << endl;
+		// cout << "SegStart z: " << segStart.z << endl;
 		Path myPath = path1.scale(dirSign *((endZ - segStart.z) / zLength));
 		myPath.vertex = segStart;
 		p1_split.push_back(myPath);
