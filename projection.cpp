@@ -32,6 +32,7 @@ int main () {
 	Point endPath = myEvent.vertex + myEvent.path1.path2vec();
 	cout << "My end path: ";
 	endPath.printPt();
+	cout << endl;
 
 
 	vector <vector <int>> allCross = testLayer.allCrossings(myEvent.vertex, endPath);
@@ -67,21 +68,40 @@ int main () {
 	myfile.close();
 
 	vector <vector <int>> myMatrix = testLayer.geoMatrix();
-	// for (int i = 0; i < (int)myMatrix.size(); i++) {
-	// 	for (int j = 0; j < (int)myMatrix[i].size(); j++) {
-	// 		if (myMatrix[i][j] == 1) {
-	// 			cout << "0" << " ";
-	// 		}
-	// 		else {
-	// 			cout << "- ";
-	// 		}
-	// 	}
-	// 	cout << endl;
-	// }
+	for (int i = 0; i < (int)myMatrix.size(); i++) {
+		for (int j = 0; j < (int)myMatrix[i].size(); j++) {
+			if (myMatrix[i][j] == 1) {
+				cout << "0" << " ";
+			}
+			else {
+				cout << "- ";
+			}
+		}
+		cout << endl;
+	}
+	ofstream sigFile;
+	sigFile.open("hitLines.txt");
 	vector <float> signals = testLayer.signalVec(myEvent.path1);
 	for (int i = 0; i < (int)signals.size(); i++) {
+		if (signals[i] > 0) {
+			if (i < (int)testLayer.vertical.startPoints.size()) {
+				sigFile << testLayer.vertical.startPoints[i].x << "\t" << testLayer.vertical.startPoints[i].y << "\n";
+				sigFile << testLayer.vertical.endPoints[i].x << "\t" << testLayer.vertical.endPoints[i].y << "\n";
+			}
+			else if (i < (int)testLayer.vertical.startPoints.size() + (int)testLayer.lSlant.startPoints.size()) {
+				int j = i - (int)testLayer.vertical.startPoints.size();
+				sigFile << testLayer.lSlant.startPoints[j].x << "\t" << testLayer.lSlant.startPoints[j].y << "\n";
+				sigFile << testLayer.lSlant.endPoints[j].x << "\t" << testLayer.lSlant.endPoints[j].y << "\n";
+			}
+			else {
+				int j = i - (int)testLayer.vertical.startPoints.size() - (int)testLayer.lSlant.startPoints.size();
+				sigFile << testLayer.rSlant.startPoints[j].x << "\t" << testLayer.rSlant.startPoints[j].y << "\n";
+				sigFile << testLayer.rSlant.endPoints[j].x << "\t" << testLayer.rSlant.endPoints[j].y << "\n";
+			}
+		}
 		cout << signals[i] << " ";
 	}
+	sigFile.close();
 	cout << endl;
 	vector <float> trueSig = solveTrue(signals, myMatrix);
 	cout << "True Signal\n";

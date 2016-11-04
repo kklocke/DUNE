@@ -181,7 +181,7 @@ public:
 		}
 		else if (slope < 0)
 		{
-			while (xPos < h)
+			while (xPos < l)
 			{
 				startPoints.push_back(Point(xPos, yPos, z));
 				float xInt = xPos - h / slope;
@@ -197,21 +197,21 @@ public:
 				xPos += xIncr;
 			}
 			xPos = 0.;
-			yPos = 0.;
-			while (yPos < l)
+			yPos = h - yIncr;
+			while (yPos > 0)
 			{
-				startPoints.push_back(Point(0, yPos, z));
+				startPoints.insert(startPoints.begin(), Point(0, yPos, z));
 				float xInt = xPos - yPos / slope;
 				if ((xInt > 0) && (xInt < l))
 				{
-					endPoints.push_back(Point(xInt, 0., z));
+					endPoints.insert(endPoints.begin(), Point(xInt, 0., z));
 				}
 				else
 				{
 					float yInt = yPos - slope * h;
-					endPoints.push_back(Point(l, yInt, z));
+					endPoints.insert(endPoints.begin(), Point(l, yInt, z));
 				}
-				yPos += yIncr;
+				yPos -= yIncr;
 			}
 		}
 	}
@@ -485,13 +485,13 @@ public:
 		vector <int> crossR = crossings(this->rSlant, p.vertex, (p.vertex + p.path2vec()));
 		vector <float> sigVec(vDim + lDim + rDim, 0.);
 		for (int i = 0; i < (int)crossV.size(); i++) {
-			sigVec[crossV[i]] = 1.;
+			sigVec[crossV[i]] += 1.;
 		}
 		for (int i = 0; i < (int)crossL.size(); i++) {
-			sigVec[crossL[i] + vDim] = 1.;
+			sigVec[crossL[i] + vDim] += 1.;
 		}
 		for (int i = 0; i < (int)crossR.size(); i++) {
-			sigVec[crossR[i] + vDim + lDim] = 1.;
+			sigVec[crossR[i] + vDim + lDim] += 1.;
 		}
 		return sigVec;
 	}

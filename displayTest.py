@@ -37,6 +37,31 @@ pathY = [float(vertex.split()[1]), float(pathEnd.split()[1])]
 
 plt.plot(pathX, pathY, color='red')
 
+f = open("hitLines.txt", "r")
+
+lineCount = 0
+
+startPts = []
+endPts = []
+
+for line in f:
+    line = line.strip()
+    lineCount += 1
+    if lineCount % 2 == 1:
+        startPts.append(line)
+    else:
+        endPts.append(line)
+
+for i, elem1 in enumerate(startPts):
+    elem2 = endPts[i]
+    x = [float(elem1.split()[0]), float(elem2.split()[0])]
+    y = [float(elem1.split()[1]), float(elem2.split()[1])]
+    plt.plot(x,y, color='orange')
+
+
+f.close()
+
+
 f = open("displayPoints.txt", 'r')
 
 for line in f:
