@@ -3,6 +3,9 @@
 #include <cmath>
 #include <assert.h>
 #include <iostream>
+#include <cstdio>
+
+using namespace std;
 
 class Point
 {

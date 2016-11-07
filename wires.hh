@@ -1,5 +1,6 @@
-#include "cell.hh"
 #include "events.hh"
+
+using namespace std;
 
 class wireArray
 {
@@ -373,7 +374,7 @@ vector <float> solveTrue(vector <float> mySig, vector <vector <int>> geoMat) {
 }
 
 
-vector <Cell> tiling(wireLayer w) {
+vector <Cell> tiling(wireLayer w, float xMax, float yMax) {
 	// for all the combos of 2 adjacent v, 2 adjacent l, and 2 adjacent r
 	// check if the cell generated has at least 3 vertices
 	// if so, append to the to return vector
@@ -381,8 +382,8 @@ vector <Cell> tiling(wireLayer w) {
 	// NOTE: THIS IS CERTAINLY AN INEFFICIENT VERSION, WILL IMPROVE LATER
 	// NOTE: Can make a helper function to extract the desired two lines
 	for (int i = 0; i < (int)w.vertical.startPoints.size() - 1; i++) {
-		vector <vector <Points>> v;
-		vector <Points> temp;
+		vector <vector <Point>> v;
+		vector <Point> temp;
 		temp.push_back(w.vertical.startPoints[i]);
 		temp.push_back(w.vertical.endPoints[i]);
 		v.push_back(temp);
@@ -392,31 +393,45 @@ vector <Cell> tiling(wireLayer w) {
 		v.push_back(temp);
 		temp.clear();
 		for (int j = 0; j < (int)w.lSlant.startPoints.size() - 1; j++) {
-			vector <vector <Points>> l;
-			temp.push_back(w.lSlant.startPoints[i+1]);
-			temp.push_back(w.lSlant.endPoints[i+1]);
+			vector <vector <Point>> l;
+			temp.push_back(w.lSlant.startPoints[j+1]);
+			temp.push_back(w.lSlant.endPoints[j+1]);
 			l.push_back(temp);
 			temp.clear();
-			temp.push_back(w.lSlant.startPoints[i]);
-			temp.push_back(w.lSlant.endPoints[i]);
+			temp.push_back(w.lSlant.startPoints[j]);
+			temp.push_back(w.lSlant.endPoints[j]);
 			l.push_back(temp);
 			temp.clear();
 			for (int k = 0; k < (int)w.rSlant.startPoints.size() - 1; k++) {
-				vector <vector <Points>> r;
-				temp.push_back(w.rSlant.startPoints[i]);
-				temp.push_back(w.rSlant.endPoints[i]);
+				vector <vector <Point>> r;
+				temp.push_back(w.rSlant.startPoints[k]);
+				temp.push_back(w.rSlant.endPoints[k]);
 				r.push_back(temp);
 				temp.clear();
-				temp.push_back(w.rSlant.startPoints[i+1]);
-				temp.push_back(w.rSlant.endPoints[i+1]);
+				temp.push_back(w.rSlant.startPoints[k+1]);
+				temp.push_back(w.rSlant.endPoints[k+1]);
 				r.push_back(temp);
 				temp.clear();
-				Cell myCell = cell(v, l, r);
+				Cell myCell = Cell(v, l, r);
 				if (myCell.vertices.size() >= 3) {
-					allCells.push_back(myCell);
+					int flag = 0;
+					for (int c = 0; c < (int)myCell.vertices.size(); c++) {
+						Point myCheck = myCell.vertices[c];
+						if ((myCheck.x < 0) || (myCheck.x > xMax)) {
+							flag = 1;
+							break;
+						}
+						if ((myCheck.y < 0) || (myCheck.y > yMax)) {
+							flag = 1;
+							break;
+						}
+					}
+					if (flag == 0) {
+						allCells.push_back(myCell);
+					}
 				}
 			}
 		}
-		return allCells;
 	}
+	return allCells;
 }

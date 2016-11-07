@@ -1,4 +1,4 @@
-#include "events.hh"
+#include "wires.hh"
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -13,7 +13,7 @@ int main () {
 	// project it --> time slices
 	// figure out how to dispay it
 	// figure out how to apply the current method to it.
-	int dims [3] = {50, 50, 50};
+	int dims [3] = {100, 100, 50};
 	NaiveEvent myEvent = randEvent(dims);
 	// print vertex
 	cout << "Vertex: " << myEvent.vertex.x << "\t" << myEvent.vertex.y << "\t" << myEvent.vertex.z << endl;
@@ -27,8 +27,8 @@ int main () {
 	cout << "\tPhi: " << myEvent.path2.phi << endl;
 	// print path1
 	// print path2
-	wireArray test = wireArray(3., 45., 50., 50., 0.);
-	wireLayer testLayer = wireLayer(50., 50., 0., 3.);
+	wireArray test = wireArray(3., 45., 100., 100., 0.);
+	wireLayer testLayer = wireLayer(100., 100., 0., 3.);
 	Point endPath = myEvent.vertex + myEvent.path1.path2vec();
 	cout << "My end path: ";
 	endPath.printPt();
@@ -68,17 +68,17 @@ int main () {
 	myfile.close();
 
 	vector <vector <int>> myMatrix = testLayer.geoMatrix();
-	for (int i = 0; i < (int)myMatrix.size(); i++) {
-		for (int j = 0; j < (int)myMatrix[i].size(); j++) {
-			if (myMatrix[i][j] == 1) {
-				cout << "0" << " ";
-			}
-			else {
-				cout << "- ";
-			}
-		}
-		cout << endl;
-	}
+	// for (int i = 0; i < (int)myMatrix.size(); i++) {
+	// 	for (int j = 0; j < (int)myMatrix[i].size(); j++) {
+	// 		if (myMatrix[i][j] == 1) {
+	// 			cout << "0" << " ";
+	// 		}
+	// 		else {
+	// 			cout << "- ";
+	// 		}
+	// 	}
+	// 	cout << endl;
+	// }
 	ofstream sigFile;
 	sigFile.open("hitLines.txt");
 	vector <float> signals = testLayer.signalVec(myEvent.path1);
@@ -99,12 +99,12 @@ int main () {
 				sigFile << testLayer.rSlant.endPoints[j].x << "\t" << testLayer.rSlant.endPoints[j].y << "\n";
 			}
 		}
-		cout << signals[i] << " ";
+		// cout << signals[i] << " ";
 	}
 	sigFile.close();
 	cout << endl;
 	vector <float> trueSig = solveTrue(signals, myMatrix);
-	cout << "True Signal\n";
+	// cout << "True Signal\n";
 	ofstream pointsFile;
 	pointsFile.open("displayPoints.txt");
 	for (int i = 0; i < (int)trueSig.size(); i++) {
@@ -116,7 +116,20 @@ int main () {
 	pointsFile.close();
 	cout << endl;
 
+	ofstream cellFile;
+	cellFile.open("cellVertices.txt");
 
-
+	vector <Cell> allCells = tiling(testLayer, 100., 100.);
+	for (int i = 0; i < (int)allCells.size(); i++) {
+		for (int j = 0; j < (int)allCells[i].vertices.size(); j++) {
+			cellFile << allCells[i].vertices[j].x << "\t";
+		}
+		cellFile << "\n";
+		for (int j = 0; j < (int)allCells[i].vertices.size(); j++) {
+			cellFile << allCells[i].vertices[j].y << "\t";
+		}
+		cellFile << "\n";
+	}
+	cellFile.close();
 	return 0;
 }
