@@ -1,6 +1,6 @@
 #include "point.hh"
 
-class cell{
+class Cell{
 public:
     vector <vector <Point>> vLines;
     vector <vector <Point>> lLines;
@@ -11,7 +11,7 @@ public:
         return (betweenLines(p, vLines) && betweenLines(p, lLines) && betweenLines(p, rLines));
     }
 
-    cell(int v [], int l [], int r []) : vLines(v), lLines(l), rLines(r){
+    Cell(vector <vector <Point>> v, vector <vector <Point>> l, vector <vector <Point>> r) : vLines(v), lLines(l), rLines(r){
         // assert the size of vLines, lLines, rLines
         assert(vLines.size() == 2);
         assert(lLines.size() == 2);
