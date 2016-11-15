@@ -76,13 +76,20 @@ f.close()
 
 f = open("displayPoints.txt", 'r')
 
+x = []
+y = []
+z = []
+
 for line in f:
     line = line.strip()
-    x = float(line.split()[0])
-    y = float(line.split()[1])
-    plt.plot(x,y, marker='o', color='green')
+    x.append(float(line.split()[0]))
+    y.append(float(line.split()[1]))
+    z.append(float(line.split()[2]))
 f.close()
+for i, elem  in enumerate(z):
+    z[i] = elem / max(z)
 
+plt.scatter(x,y, marker='D', c=z, cmap='viridis')
 
 plt.show()
 plt.close("all")
@@ -113,6 +120,8 @@ for line in f:
         x = []
         y = []
     lineCount += 1
+    #if lineCount == 9:
+    #    break
 
 lineCount = 0
 

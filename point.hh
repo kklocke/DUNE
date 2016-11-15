@@ -78,14 +78,20 @@ Point intersection(Point p1_s, Point p1_e, Point p2_s, Point p2_e) {
 	Point diff_s = p1_s - p2_s;
 	if (fabs(vec1.x) < 0.0001) {
 		Point newPt = Point(p1_s.x, 0, p1_s.z);
-		float scale = fabs(diff_s.x / vec2.x);
-		newPt.y = p2_s.y + scale * vec2.y;
+		float slope = vec2.y / vec2.x;
+		float myY = p2_s.y + slope*(p1_s.x - p2_s.x);
+		// float scale = fabs(diff_s.x / vec2.x);
+		// newPt.y = p2_s.y + scale * vec2.y;
+		newPt.y = myY;
 		return newPt;
 	}
 	if (fabs(vec2.x) < 0.0001) {
 		Point newPt = Point(p2_s.x, 0, p2_s.z);
-		float scale = fabs(diff_s.x / vec1.x);
-		newPt.y = p1_s.y + scale * vec1.y;
+		float slope = vec1.y / vec1.x;
+		float myY = p1_s.y + slope*(p2_s.x - p1_s.x);
+		// float scale = fabs(diff_s.x / vec1.x);
+		// newPt.y = p1_s.y + scale * vec1.y;
+		newPt.y = myY;
 		return newPt;
 	}
 	if (vec1.y == 0) {

@@ -24,11 +24,11 @@ public:
         if (betweenLines(p1, vLines)) {
             vertices.push_back(p1);
         }
-        Point p2 = intersection(vLines[0][0], lLines[0][1], rLines[1][0], rLines[1][1]);
+        Point p2 = intersection(vLines[0][0], vLines[0][1], rLines[1][0], rLines[1][1]);
         if (betweenLines(p2, lLines)) {
             vertices.push_back(p2);
         }
-        Point p3 = intersection(lLines[0][0], lLines[0][1], vLines[0][0], vLines[0][1]);
+        Point p3 = intersection(vLines[0][0], vLines[0][1], lLines[0][0], lLines[0][1]);
         if (betweenLines(p3, rLines)) {
             vertices.push_back(p3);
         }
@@ -101,7 +101,6 @@ bool betweenLines(Point p, vector< vector <Point>> lines) {
     assert(lines.size() == 2);
     // if any of the slopes are infinite, then we assume (v1) is left and (v2) is right so just check the x coord
     // if any slopes are 0, then just check the y coord
-
     float xDiff = lines[0][0].x - lines[0][1].x;
     float yDiff = lines[0][0].y - lines[0][1].y;
     if (xDiff == 0.) {
@@ -118,12 +117,23 @@ bool betweenLines(Point p, vector< vector <Point>> lines) {
     }
     else {
         float slope = yDiff / xDiff;
-        if (p.y < lines[0][0].y + slope * (p.x - lines[0][0].x)) {
-            return false;
+        if (slope > 0) {
+            if (p.y < lines[1][0].y + slope * (p.x - lines[1][0].x) - 0.001) {
+                return false;
+            }
+            if (p.y > lines[0][0].y + slope * (p.x - lines[0][0].x) + 0.001) {
+                return false;
+            }
         }
-        if (p.y > lines[1][0].y + slope * (p.x - lines[1][0].x)) {
-            return false;
+        else if (slope < 0) {
+            if (p.y < lines[0][0].y + slope * (p.x - lines[0][0].x) - 0.001) {
+                return false;
+            }
+            if (p.y > lines[1][0].y + slope * (p.x - lines[1][0].x) + 0.001) {
+                return false;
+            }
         }
+
     }
     return true;
 }

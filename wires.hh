@@ -52,8 +52,10 @@ public:
 				}
 				xPos += xIncr;
 			}
+
+			// solve back for the y posn
+			yPos = h - slope*(xPos - l);
 			xPos = l;
-			yPos = h;
 			while (yPos > 0)
 			{
 				startPoints.push_back(Point(xPos, yPos, z));
@@ -520,37 +522,39 @@ vector <Cell> tiling(wireLayer w, float xMax, float yMax) {
 	vector <Cell> allCells;
 	// NOTE: THIS IS CERTAINLY AN INEFFICIENT VERSION, WILL IMPROVE LATER
 	// NOTE: Can make a helper function to extract the desired two lines
-	for (int i = 0; i < (int)w.vertical.startPoints.size() - 1; i++) {
+	for (int i = 1; i < (int)w.vertical.startPoints.size() - 1; i++) {
 		vector <vector <Point>> v;
-		vector <Point> temp;
-		temp.push_back(w.vertical.startPoints[i]);
-		temp.push_back(w.vertical.endPoints[i]);
-		v.push_back(temp);
-		temp.clear();
-		temp.push_back(w.vertical.startPoints[i+1]);
-		temp.push_back(w.vertical.endPoints[i+1]);
-		v.push_back(temp);
-		temp.clear();
-		for (int j = 0; j < (int)w.lSlant.startPoints.size() - 1; j++) {
+		vector <Point> tempV;
+		tempV.push_back(w.vertical.startPoints[i]);
+		tempV.push_back(w.vertical.endPoints[i]);
+		v.push_back(tempV);
+		tempV.clear();
+		tempV.push_back(w.vertical.startPoints[i+1]);
+		tempV.push_back(w.vertical.endPoints[i+1]);
+		v.push_back(tempV);
+		tempV.clear();
+		for (int j = 1; j < (int)w.lSlant.startPoints.size() - 1; j++) {
 			vector <vector <Point>> l;
-			temp.push_back(w.lSlant.startPoints[j+1]);
-			temp.push_back(w.lSlant.endPoints[j+1]);
-			l.push_back(temp);
-			temp.clear();
-			temp.push_back(w.lSlant.startPoints[j]);
-			temp.push_back(w.lSlant.endPoints[j]);
-			l.push_back(temp);
-			temp.clear();
-			for (int k = 0; k < (int)w.rSlant.startPoints.size() - 1; k++) {
+			vector <Point> tempL;
+			tempL.push_back(w.lSlant.startPoints[j]);
+			tempL.push_back(w.lSlant.endPoints[j]);
+			l.push_back(tempL);
+			tempL.clear();
+			tempL.push_back(w.lSlant.startPoints[j+1]);
+			tempL.push_back(w.lSlant.endPoints[j+1]);
+			l.push_back(tempL);
+			tempL.clear();
+			for (int k = 1; k < (int)w.rSlant.startPoints.size() - 1; k++) {
 				vector <vector <Point>> r;
-				temp.push_back(w.rSlant.startPoints[k]);
-				temp.push_back(w.rSlant.endPoints[k]);
-				r.push_back(temp);
-				temp.clear();
-				temp.push_back(w.rSlant.startPoints[k+1]);
-				temp.push_back(w.rSlant.endPoints[k+1]);
-				r.push_back(temp);
-				temp.clear();
+				vector <Point> tempR;
+				tempR.push_back(w.rSlant.startPoints[k]);
+				tempR.push_back(w.rSlant.endPoints[k]);
+				r.push_back(tempR);
+				tempR.clear();
+				tempR.push_back(w.rSlant.startPoints[k+1]);
+				tempR.push_back(w.rSlant.endPoints[k+1]);
+				r.push_back(tempR);
+				tempR.clear();
 				Cell myCell = Cell(v, l, r);
 				if (myCell.vertices.size() >= 3) {
 					int flag = 0;

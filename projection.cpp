@@ -111,8 +111,8 @@ int main () {
 	ofstream pointsFile;
 	pointsFile.open("displayPoints.txt");
 	for (int i = 0; i < (int)trueSig.size(); i++) {
-		if (trueSig[i] > .5) {
-			pointsFile << testLayer.grids[i].x << "\t" << testLayer.grids[i].y << endl;
+		if (trueSig[i] > 1) {
+			pointsFile << testLayer.grids[i].x << "\t" << testLayer.grids[i].y << "\t" << trueSig[i] << endl;
 			cout << trueSig[i] << " ";
 		}
 	}
