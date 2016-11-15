@@ -333,6 +333,139 @@ public:
 		}
 		return myMatrix;
 	}
+
+	bool inFrame(Point p) {
+    	if ((p.x < 0) || (p.x > this->length)) {return false;}
+    	if ((p.y < 0) || (p.y > this->height)) {return false;}
+    	//if ((p.z < 0) || (p.z > zMax)) {return false;}
+    	return true;
+	}
+
+vector <vector <int>> geoMatrix_test(vector <float> mySig) {
+	vector<int> vPosn;
+	vector<int> lPosn;
+	vector<int> rPosn;
+	int vSize = (int) this->vertical.startPoints.size();
+	int lSize = (int) this->lSlant.startPoints.size();
+	int rSize = (int) this->rSlant.startPoints.size();
+	int i = 0;
+	while (i < vSize) {
+    	if (mySig[i] >= 1.) { // this is temporarily set to 1
+        	// we care about this wire
+        	vPosn.push_back(i);
+    	}
+    	i++;
+	}
+	while (i < vSize + lSize) {
+    	if (mySig[i] >= 1.) { // this is temporarily set to 1
+        	// we care about this wire
+			lPosn.push_back(i-vSize);
+    	}
+    	i++;
+	}
+	while (i < vSize + lSize + rSize) {
+    	if (mySig[i] >= 1.) { // this is temporarily set to 1
+        	// we care about this wire
+        	rPosn.push_back(i - vSize - lSize);
+    	}
+    	i++;
+	}
+	map<Point, vector<int>> gridPts;
+	vector <vector <int>> myMatrix;
+	for (int i = 0; i < (int)vPosn.size(); i++) {
+    	// intersect with all of the lSlant ones
+    	// intersect with all of the rSlant ones
+    	// add intersection points to a map after checking within bounds and not (-1, -1, -1)
+		for (int j = 0; j < (int)lPosn.size(); j++) {
+        	Point pv_s = this->vertical.startPoints[vPosn[i]];
+        	Point pv_e = this->vertical.endPoints[vPosn[i]];
+        	Point pl_s = this->lSlant.startPoints[lPosn[j]];
+        	Point pl_e = this->lSlant.endPoints[lPosn[j]];
+        	Point intPt = intersection(pv_s, pv_e, pl_s, pl_e);
+        	if ((intPt != Point(-1., -1., -1.)) && (inFrame(intPt))) {
+            	intPt.round(2);
+            	if (gridPts.find(intPt) == gridPts.end()) {
+                	int wireRefs [3] = {i, j, -1};
+                	vector <int> newEntry;
+                	newEntry.assign(wireRefs, wireRefs+3);
+                	gridPts[intPt] = newEntry;
+            	}
+            	else {
+                	if (gridPts[intPt][0] == -1) {gridPts[intPt][0] = i;}
+                	if (gridPts[intPt][1] == -1) {gridPts[intPt][1] = j;}
+            	}
+        	}
+    	}
+		for (int j = 0; j < (int)rPosn.size(); j++) {
+        	Point pv_s = this->vertical.startPoints[vPosn[i]];
+        	Point pv_e = this->vertical.endPoints[vPosn[i]];
+        	Point pl_s = this->rSlant.startPoints[rPosn[j]];
+        	Point pl_e = this->rSlant.endPoints[rPosn[j]];
+        	Point intPt = intersection(pv_s, pv_e, pl_s, pl_e);
+        	if ((intPt != Point(-1., -1., -1.)) && (inFrame(intPt))) {
+            	intPt.round(2);
+            	if (gridPts.find(intPt) == gridPts.end()) {
+                	int wireRefs [3] = {i, -1, j};
+                	vector <int> newEntry;
+                	newEntry.assign(wireRefs, wireRefs+3);
+                	gridPts[intPt] = newEntry;
+            	}
+            	else {
+                	if (gridPts[intPt][0] == -1) {gridPts[intPt][0] = i;}
+                	if (gridPts[intPt][2] == -1) {gridPts[intPt][2] = j;}
+            	}
+        	}
+    	}
+	}
+	for (int i = 0; i < (int)lPosn.size(); i++) {
+    	// intersect with all of the lSlant ones
+    	// intersect with all of the rSlant ones
+    	// add intersection points to a map after checking within bounds and not (-1, -1, -1)
+		for (int j = 0; j < (int)rPosn.size(); j++) {
+        	Point pv_s = this->lSlant.startPoints[lPosn[i]];
+        	Point pv_e = this->lSlant.endPoints[lPosn[i]];
+        	Point pl_s = this->rSlant.startPoints[rPosn[j]];
+        	Point pl_e = this->rSlant.endPoints[rPosn[j]];
+        	Point intPt = intersection(pv_s, pv_e, pl_s, pl_e);
+        	if ((intPt != Point(-1., -1., -1.)) && (inFrame(intPt))) {
+            	intPt.round(2);
+            	if (gridPts.find(intPt) == gridPts.end()) {
+                	int wireRefs [3] = {-1, i, j};
+                	vector <int> newEntry;
+                	newEntry.assign(wireRefs, wireRefs+3);
+                	gridPts[intPt] = newEntry;
+            	}
+            	else {
+                	if (gridPts[intPt][1] == -1) {gridPts[intPt][1] = i;}
+                	if (gridPts[intPt][2] == -1) {gridPts[intPt][2] = j;}
+            	}
+        	}
+    	}
+    }
+    int numCols = gridPts.size();
+    for (int i = 0; i < (int)(rPosn.size() + lPosn.size() + vPosn.size()); i++) {
+    	vector <int> tempVec(numCols, 0);
+    	myMatrix.push_back(tempVec);
+    }
+    int count = 0;
+    this->grids.clear();
+    for (map<Point, vector<int>>::iterator j = gridPts.begin(); j != gridPts.end(); j++) {
+    	Point myPt = j->first;
+    	this->grids.push_back(myPt);
+    	vector <int> my3 = j->second;
+    	if (my3[0] != -1) {myMatrix[my3[0]][count] = 1;}
+		if (my3[1] != -1) {myMatrix[my3[1] + vPosn.size()][count] = 1;}
+    	if (my3[2] != -1) {myMatrix[my3[2] + vPosn.size() + lPosn.size()][count] = 1;}
+    	count++;
+    }
+    return myMatrix;
+}
+
+
+
+
+
+
 	vector <float> signalVec(Path p) {
 		int vDim = this->vertical.startPoints.size();
 		int lDim = this->lSlant.startPoints.size();
@@ -342,19 +475,25 @@ public:
 		vector <int> crossR = crossings(this->rSlant, p.vertex, (p.vertex + p.path2vec()));
 		vector <float> sigVec(vDim + lDim + rDim, 0.);
 		for (int i = 0; i < (int)crossV.size(); i++) {
-			sigVec[crossV[i]] += 1.;
+			sigVec[crossV[i]] += 10.;
 		}
 		for (int i = 0; i < (int)crossL.size(); i++) {
-			sigVec[crossL[i] + vDim] += 1.;
+			sigVec[crossL[i] + vDim] += 10.;
 		}
 		for (int i = 0; i < (int)crossR.size(); i++) {
-			sigVec[crossR[i] + vDim + lDim] += 1.;
+			sigVec[crossR[i] + vDim + lDim] += 10.;
 		}
 		return sigVec;
 	}
 };
 
+
+
+
+
+
 vector <float> solveTrue(vector <float> mySig, vector <vector <int>> geoMat) {
+	cout << geoMat.size();
 	mat geo(geoMat.size(), geoMat[0].size());
 	vec sig(mySig.size());
 	for (int i = 0; i < (int)geoMat.size(); i++) {
