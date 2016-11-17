@@ -8,7 +8,7 @@
 #include <map>
 #include <list>
 #include <armadillo>
-#include "cell.hh"
+#include "blob.hh"
 
 using namespace std;
 using namespace arma;

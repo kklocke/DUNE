@@ -564,7 +564,8 @@ vector <Cell> tiling(wireLayer w, float xMax, float yMax, vector <float> hit) {
 				tempR.push_back(w.rSlant.endPoints[k+1]);
 				r.push_back(tempR);
 				tempR.clear();
-				Cell myCell = Cell(v, l, r);
+				int myNums [3] = {i, j, k};
+				Cell myCell = Cell(v, l, r, myNums);
 				if (myCell.vertices.size() >= 3) {
 					int flag = 0;
 					for (int c = 0; c < (int)myCell.vertices.size(); c++) {

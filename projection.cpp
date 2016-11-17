@@ -219,6 +219,13 @@ int main () {
 			}
 			cellFile << "\n";
 		}
+		vector <Blob> allBlobs = tile2blob(allCells);
+		cout << "Blob Results: \n";
+		for (int b = 0; b < (int)allBlobs.size(); b++) {
+			cout << "\tV: " << allBlobs[b].vLims[0] << "\t" << allBlobs[b].vLims[1] << "\n";
+			cout << "\tL: " << allBlobs[b].lLims[0] << "\t" << allBlobs[b].lLims[1] << "\n";
+			cout << "\tR: " << allBlobs[b].rLims[0] << "\t" << allBlobs[b].rLims[1] << "\n";
+		}
 	}
 	pointsFile.close();
 	sigFile.close();

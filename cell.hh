@@ -10,14 +10,19 @@ public:
     vector <vector <Point>> lLines;
     vector <vector <Point>> rLines;
     vector <Point> vertices;
+    int wireNums [3];
 
 
 
-    Cell(vector <vector <Point>> v, vector <vector <Point>> l, vector <vector <Point>> r) : vLines(v), lLines(l), rLines(r){
+    Cell(vector <vector <Point>> v, vector <vector <Point>> l, vector <vector <Point>> r, int w[3]) : vLines(v), lLines(l), rLines(r){
         // assert the size of vLines, lLines, rLines
         assert(vLines.size() == 2);
         assert(lLines.size() == 2);
         assert(rLines.size() == 2);
+
+        wireNums[0] = w[0];
+        wireNums[1] = w[1];
+        wireNums[2] = w[2];
         // ordering of the vertices is really important for tile coloring for display
 
         Point p1 = intersection(lLines[0][0], lLines[0][1], rLines[1][0], rLines[1][1]);
