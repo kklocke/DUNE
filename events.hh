@@ -50,12 +50,6 @@ Path randPath(float maxLeng) {
 
 
 
-
-
-
-
-
-
 /* This class will describe naive events, wherein there is a
  * single well defined event vertex and two variable length
  * paths leading off from this and their angular orientation.

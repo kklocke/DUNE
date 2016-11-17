@@ -179,35 +179,42 @@ for i in range(numPaths):
 # plt.show()
 # plt.close("all")
 
-# fig, ax = plt.subplots()
-# patches = []
+fig, ax = plt.subplots()
+patches = []
 
-# f = open("cellVertices.txt", 'r')
-#
-# lineCount = 0
-#
-# x = []
-# y = []
-# for line in f:
-#     line = line.strip()
-#     strList = line.split()
-#     for elem in strList:
-#         if (lineCount % 2 == 0):
-#             x.append(float(elem))
-#         else:
-#             y.append(float(elem))
-#     if (lineCount % 2 == 1):
-#         # myVerts = np.array([x, y])
-#         # myVerts.reshape((len(x), 2))
-#         # print(myVerts)
-#         # print(myVerts.shape)
-#         ax.add_patch(Polygon(zip(x,y), facecolor='r', alpha=0.5))
-#         x = []
-#         y = []
-#     lineCount += 1
-#     #if lineCount == 9:
-#     #    break
-#
+f = open("cellVertices.txt", 'r')
+
+lineCount = 0
+
+x = []
+y = []
+for line in f:
+    line = line.strip()
+    strList = line.split()
+    for elem in strList:
+        if (lineCount % 2 == 0):
+            x.append(float(elem))
+        else:
+            y.append(float(elem))
+    if (lineCount % 2 == 1):
+        # myVerts = np.array([x, y])
+        # myVerts.reshape((len(x), 2))
+        # print(myVerts)
+        # print(myVerts.shape)
+        ax.add_patch(Polygon(zip(x,y), facecolor='r', alpha=0.5))
+        x = []
+        y = []
+    lineCount += 1
+    #if lineCount == 9:
+    #    break
+f.close()
+for j in range(len(gridX)):
+    plt.plot(gridX[j], gridY[j], color='blue')
+
+for i in range(numPaths):
+    plt.plot(pathX[i], pathY[i], color='green', marker='D')
+
+plt.show()
 # lineCount = 0
 #
 # startPts = []

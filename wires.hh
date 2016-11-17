@@ -515,7 +515,7 @@ vector <float> solveTrue(vector <float> mySig, vector <vector <int>> geoMat) {
 }
 
 
-vector <Cell> tiling(wireLayer w, float xMax, float yMax) {
+vector <Cell> tiling(wireLayer w, float xMax, float yMax, vector <float> hit) {
 	// for all the combos of 2 adjacent v, 2 adjacent l, and 2 adjacent r
 	// check if the cell generated has at least 3 vertices
 	// if so, append to the to return vector
@@ -523,6 +523,9 @@ vector <Cell> tiling(wireLayer w, float xMax, float yMax) {
 	// NOTE: THIS IS CERTAINLY AN INEFFICIENT VERSION, WILL IMPROVE LATER
 	// NOTE: Can make a helper function to extract the desired two lines
 	for (int i = 1; i < (int)w.vertical.startPoints.size() - 1; i++) {
+		if (hit[i] == 0) {
+			continue;
+		}
 		vector <vector <Point>> v;
 		vector <Point> tempV;
 		tempV.push_back(w.vertical.startPoints[i]);
@@ -534,6 +537,9 @@ vector <Cell> tiling(wireLayer w, float xMax, float yMax) {
 		v.push_back(tempV);
 		tempV.clear();
 		for (int j = 1; j < (int)w.lSlant.startPoints.size() - 1; j++) {
+			if (hit[w.vertical.startPoints.size()+j] == 0) {
+				continue;
+			}
 			vector <vector <Point>> l;
 			vector <Point> tempL;
 			tempL.push_back(w.lSlant.startPoints[j]);
@@ -545,6 +551,9 @@ vector <Cell> tiling(wireLayer w, float xMax, float yMax) {
 			l.push_back(tempL);
 			tempL.clear();
 			for (int k = 1; k < (int)w.rSlant.startPoints.size() - 1; k++) {
+				if (hit[w.vertical.startPoints.size() + w.lSlant.startPoints.size() + k] == 0) {
+					continue;
+				}
 				vector <vector <Point>> r;
 				vector <Point> tempR;
 				tempR.push_back(w.rSlant.startPoints[k]);

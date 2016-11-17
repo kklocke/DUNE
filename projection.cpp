@@ -172,6 +172,9 @@ int main () {
 	sigFile.open("hitLines.txt");
 	ofstream pointsFile;
 	pointsFile.open("displayPoints.txt");
+	ofstream cellFile;
+	cellFile.open("cellVertices.txt");
+
 	cout << "\n\nNUMBER OF PATHS: " << myPartEvent[0].size() << endl;
 	for (int i = 0; i < (int)myPartEvent[0].size(); i++) {
 	    vector <float> signals = testLayer.signalVec(myPartEvent[0][i]);
@@ -205,29 +208,40 @@ int main () {
 	    }
 		cout << "\n";
 	    pointsFile << "NEXT PARTITION\n";
+		vector <Cell> allCells = tiling(testLayer, 200., 200., testLayer.signalVec(myPartEvent[0][i]));
+		for (int j = 0; j < (int)allCells.size(); j++) {
+			for (int k = 0; k < (int)allCells[j].vertices.size(); k++) {
+				cellFile << allCells[j].vertices[k].x << "\t";
+			}
+			cellFile << "\n";
+			for (int k = 0; k < (int)allCells[j].vertices.size(); k++) {
+				cellFile << allCells[j].vertices[k].y << "\t";
+			}
+			cellFile << "\n";
+		}
 	}
 	pointsFile.close();
 	sigFile.close();
-
+	cellFile.close();
 	cout << endl;
 
 
 
 
-	ofstream cellFile;
-	cellFile.open("cellVertices.txt");
+	// ofstream cellFile;
+	// cellFile.open("cellVertices.txt");
 
-	vector <Cell> allCells = tiling(testLayer, 200., 200.);
-	for (int i = 0; i < (int)allCells.size(); i++) {
-		for (int j = 0; j < (int)allCells[i].vertices.size(); j++) {
-			cellFile << allCells[i].vertices[j].x << "\t";
-		}
-		cellFile << "\n";
-		for (int j = 0; j < (int)allCells[i].vertices.size(); j++) {
-			cellFile << allCells[i].vertices[j].y << "\t";
-		}
-		cellFile << "\n";
-	}
-	cellFile.close();
+	// vector <Cell> allCells = tiling(testLayer, 200., 200., testLayer.signalVec(myEvent.path1));
+	// for (int i = 0; i < (int)allCells.size(); i++) {
+	// 	for (int j = 0; j < (int)allCells[i].vertices.size(); j++) {
+	// 		cellFile << allCells[i].vertices[j].x << "\t";
+	// 	}
+	// 	cellFile << "\n";
+	// 	for (int j = 0; j < (int)allCells[i].vertices.size(); j++) {
+	// 		cellFile << allCells[i].vertices[j].y << "\t";
+	// 	}
+	// 	cellFile << "\n";
+	// }
+	// cellFile.close();
 	return 0;
 }
