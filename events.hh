@@ -76,9 +76,9 @@ class NaiveEvent
 };
 
 NaiveEvent randEvent(int dims[]) {
-	float x = float(dims[0]) * float(rand()) / float(RAND_MAX);
-	float y = float(dims[1]) * float(rand()) / float(RAND_MAX);
-	float z = float(dims[2]) * float(rand()) / float(RAND_MAX);
+	float x = float(0.1 * dims[0]) * float(rand()) / float(RAND_MAX);
+	float y = float(0.1 * dims[1]) * float(rand()) / float(RAND_MAX);
+	float z = float(0.1 * dims[2]) * float(rand()) / float(RAND_MAX);
 	Point v = Point(x, y, z);
 	float maxX = float(dims[0]) - x;
 	float maxY = float(dims[1]) - y;
