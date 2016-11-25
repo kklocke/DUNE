@@ -63,6 +63,8 @@ float computeCost(vector <vector <float>> trial, vector <float> mySig,vector<vec
         cost += (trial[1][i]^2)/mySig[i];
     }
 
+    
+
     // add stuff about spacial packing
 
     return myCost;
