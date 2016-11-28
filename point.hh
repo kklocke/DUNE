@@ -55,6 +55,9 @@ public:
 	bool operator==(const Point& p) {
 		return ((fabs(this->x - p.x) < 0.001) && (fabs(this->y - p.y) < 0.001) && (fabs(this->z - p.z) < 0.001));
 	}
+	bool pointMatch(const Point& p) {
+		return ((fabs(this->x - p.x) < 0.01) && (fabs(this->y - p.y) < 0.01));
+	}
 	bool operator!=(const Point& p) {
 		return !(*this == p);
 	}

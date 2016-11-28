@@ -38,10 +38,10 @@ for i, elem1 in enumerate(startPts):
     gridX.append(x)
     y = [float(elem1.split()[1]), float(elem2.split()[1])]
     gridY.append(y)
-    plt.plot(x,y, color='blue')
+    plt.plot(x,y, color='blue', zorder=1)
 
 
-plt.plot([vertex.split()[0], pathEnd.split()[0]], [vertex.split()[1], pathEnd.split()[1]], color='r')
+plt.plot([vertex.split()[0], pathEnd.split()[0]], [vertex.split()[1], pathEnd.split()[1]], color='r', zorder=1)
 
 f = open("opt_hitlines.txt", "r")
 
@@ -62,7 +62,7 @@ for i, elem1 in enumerate(startPts):
     elem2 = endPts[i]
     x = [float(elem1.split()[0]), float(elem2.split()[0])]
     y = [float(elem1.split()[1]), float(elem2.split()[1])]
-    plt.plot(x,y, color='orange')
+    plt.plot(x,y, color='orange', zorder=1)
 
 
 f.close()
@@ -83,7 +83,7 @@ f.close()
 for i, elem  in enumerate(z):
     z[i] = elem / max(z)
 
-plt.scatter(x,y, marker='D', c=z, cmap='viridis')
+plt.scatter(x,y, marker='D', c=z, cmap='viridis',zorder=2)
 
 plt.show()
 plt.close("all")

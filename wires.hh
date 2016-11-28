@@ -188,8 +188,8 @@ public:
 	vector <Point> grids;
 	wireLayer(float h, float l, float z, float pitch) : pitch(pitch), length(l), height(h), z(z) {
 		vertical = wireArray(pitch, 90., l, h, z);
-		lSlant = wireArray(pitch, 45., l, h, z);
-		rSlant = wireArray(pitch, -45., l, h, z);
+		lSlant = wireArray(pitch, 54.3, l, h, z);
+		rSlant = wireArray(pitch, -54.3, l, h, z);
 	}
 	vector <vector <int>> allCrossings(Point p1, Point p2) {
 		vector <vector <int>> all3;
@@ -522,42 +522,97 @@ vector <vector <float>> randChargeDistrib(vector <float> mySig, vector <vector <
     return toReturn;
 }
 
+// vector <vector <float>> randChargeDistrib_tile(vector <float> mySig, vector <vector <int>> geoMat, vector <Cell> myCells, wireLayer myLayer) {
+// 	vector <float> remain = mySig;
+// 	vector <float> myCharge ((int)geoMat[0].size(), 0.);
+// 	int vSize = (int) myLayer.vertical.startPoints.size();
+// 	int lSize = (int) myLayer.lSlant.startPoints.size();
+// 	// cout << "vSize and lSize: " << vSize << "\t" << lSize << endl;
+// 	// cout << "remain size :" << remain.size() << endl;
+// 	// cout << "grids: " << myLayer.grids.size() << endl;
+// 	for (int i = 0; i < (int) myCells.size(); i++) {
+// 		float minRem = numeric_limits<float>::infinity();
+// 		minRem = min(minRem, remain[myCells[i].wireNums[0]]);
+// 		minRem = min(minRem, remain[myCells[i].wireNums[1] + vSize]);
+// 		minRem = min(minRem, remain[myCells[i].wireNums[2] + vSize + lSize]);
+// 		minRem = min(minRem, remain[myCells[i].wireNums[0] + 1]);
+// 		minRem = min(minRem, remain[myCells[i].wireNums[1] + vSize + 1]);
+// 		minRem = min(minRem, remain[myCells[i].wireNums[2] + vSize + lSize + 1]);
+// 		minRem = max(minRem, float(0.));
+// 		float charge = minRem * (float(rand()) / float(RAND_MAX));
+// 		for (int j = 0; j < (int)myCells[i].vertices.size(); j++) {
+// 			int whichGrid = -1;
+// 			Point myPt = myCells[i].vertices[j];
+// 			myPt.round(2);
+// 			for (int k = 0; k < (int)myLayer.grids.size(); k++) {
+// 				if (myLayer.grids[k] == myPt) {
+// 					whichGrid = k;
+// 					break;
+// 				}
+// 			}
+// 			if (whichGrid == -1) {
+// 				continue;
+// 			}
+// 			myCharge[whichGrid] += charge;
+// 		}
+// 		remain[myCells[i].wireNums[0]] -= charge;
+// 		remain[myCells[i].wireNums[0] + 1] -= charge;
+// 		remain[myCells[i].wireNums[1] + vSize] -= charge;
+// 		remain[myCells[i].wireNums[1] + vSize + 1] -= charge;
+// 		remain[myCells[i].wireNums[2] + vSize + lSize] -= charge;
+// 		remain[myCells[i].wireNums[2] + vSize + lSize + 1] -= charge;
+// 	}
+// 	vector <vector <float>> toReturn;
+// 	toReturn.push_back(myCharge);
+// 	toReturn.push_back(remain);
+// 	return toReturn;
+// }
+
 vector <vector <float>> randChargeDistrib_tile(vector <float> mySig, vector <vector <int>> geoMat, vector <Cell> myCells, wireLayer myLayer) {
 	vector <float> remain = mySig;
 	vector <float> myCharge ((int)geoMat[0].size(), 0.);
-	int vSize = (int) myLayer.vertical.startPoints.size();
-	int lSize = (int) myLayer.lSlant.startPoints.size();
-	for (int i = 0; i < (int) myCells.size(); i++) {
-		float minRem = numeric_limits<float>::infinity();
-		minRem = min(minRem, remain[myCells[i].wireNums[0]]);
-		minRem = min(minRem, remain[myCells[i].wireNums[1] + vSize]);
-		minRem = min(minRem, remain[myCells[i].wireNums[2] + vSize + lSize]);
-		minRem = min(minRem, remain[myCells[i].wireNums[0] + 1]);
-		minRem = min(minRem, remain[myCells[i].wireNums[1] + vSize + 1]);
-		minRem = min(minRem, remain[myCells[i].wireNums[2] + vSize + lSize + 1]);
-		minRem = max(minRem, float(0.));
-		float charge = minRem * (float(rand()) / float(RAND_MAX));
+	for (int i = 0; i < (int)myCells.size(); i++) {
+		vector <int> whichGrids;
 		for (int j = 0; j < (int)myCells[i].vertices.size(); j++) {
-			int whichGrid = -1;
-			Point myPt = myCells[i].vertices[j];
-			myPt.round(2);
-			for (int k = 0; k < (int)myLayer.grids.size(); k++) {
-				if (myLayer.grids[k] == myPt) {
-					whichGrid = k;
+			for (int k = 0; k < (int) myLayer.grids.size(); k++) {
+				if (myCells[i].vertices[j].pointMatch(myLayer.grids[k])) {
+					whichGrids.push_back(k);
 					break;
 				}
 			}
-			if (whichGrid == -1) {
-				continue;
-			}
-			myCharge[whichGrid] += charge;
 		}
-		remain[myCells[i].wireNums[0]] -= charge;
-		remain[myCells[i].wireNums[0] + 1] -= charge;
-		remain[myCells[i].wireNums[1] + vSize] -= charge;
-		remain[myCells[i].wireNums[1] + vSize + 1] -= charge;
-		remain[myCells[i].wireNums[2] + vSize + lSize] -= charge;
-		remain[myCells[i].wireNums[2] + vSize + lSize + 1] -= charge;
+		float minRem = numeric_limits<float>::infinity();
+		float remSum = 0;
+		map<int, int> whichWires;
+		for (int j = 0; j < (int)geoMat.size(); j++) {
+			for (int k = 0; k < (int)whichGrids.size(); k++) {
+				if (geoMat[j][whichGrids[k]] == 1) {
+					if (whichWires.find(j) == whichWires.end()) {
+						whichWires[j] = 1;
+					}
+					else {
+						whichWires[j]++;
+					}
+					remSum += remain[j];
+					minRem = min(minRem, remain[j]);
+				}
+			}
+		}
+		minRem = max(float(0.), minRem);
+		float charge = minRem * float(rand()) / float((RAND_MAX));
+		if (remSum > 0.5) {
+			charge = 10;
+		}
+
+		else {
+			charge = 0;
+		}
+		for (int j = 0; j < (int)whichGrids.size(); j++) {
+			myCharge[whichGrids[j]] += charge / float(myCells[i].vertices.size());
+		}
+		for (map<int, int>::iterator j = whichWires.begin(); j != whichWires.end(); j++) {
+			remain[j->first] -= charge*float(j->second)/float(whichGrids.size());
+		}
 	}
 	vector <vector <float>> toReturn;
 	toReturn.push_back(myCharge);
@@ -569,10 +624,15 @@ vector <vector <float>> randChargeDistrib_tile(vector <float> mySig, vector <vec
 
 vector <vector <float>> randChargeDistrib_discrete(vector <float> mySig, vector <vector <int>> geoMat) {
 	vector <float> remain = mySig;
+	float totalCharge = 0.;
+	for (int i = 0; i < (int)mySig.size(); i++) {
+		totalCharge += mySig[i];
+	}
 	vector <float> myCharge ((int)geoMat[0].size(), 0.);
+	float myProb = totalCharge / (10 * 2.5 * myCharge.size());
 	for (int i = 0; i < (int)myCharge.size(); i++) {
 		float charge = float(rand()) / float(RAND_MAX);
-		if (charge < 0.1) {
+		if (charge < myProb) {
 			charge = 10;
 		}
 		else {charge = 0;}
@@ -593,16 +653,15 @@ vector <vector <float>> randChargeDistrib_discrete(vector <float> mySig, vector 
 float computeCost(vector <vector <float>> trial, vector <float> mySig,vector<vector <int>> geoMat, wireLayer myLayer) {
     float myCost = 0;
     for (int i = 0; i < (int)mySig.size(); i++) {
-        myCost += pow(trial[1][i],2)/mySig[i];
+        myCost += 100*pow(trial[1][i],2)/mySig[i]; //1000 prefactor works nicely
 		//myCost += pow(trial[1][i], 2);
     }
-
 
 	for (int i = 0; i < (int)mySig.size(); i++) {
 		for (int j = i; j < (int)mySig.size(); j++) {
 			float xDiff = myLayer.grids[i].x - myLayer.grids[j].x;
 			float yDiff = myLayer.grids[i].y - myLayer.grids[j].y;
-			myCost += mySig[i] * mySig[j] * (pow(xDiff,2) + pow(yDiff, 2));
+			myCost +=  mySig[i] * mySig[j] * (pow(xDiff,2) + pow(yDiff, 2));
 		}
 	}
 
@@ -616,10 +675,10 @@ vector <float> solveCharge(vector <float> mySig, vector <vector <int>> geoMat, w
     int tryCount = 0;
     float minCost = numeric_limits<float>::infinity();
     vector <float> bestDistrib ((int)geoMat[0].size(), -1.);
-    while (tryCount < 1000) {
-        vector <vector <float>> myTrial = randChargeDistrib(mySig, geoMat);
+    while (tryCount < 10000) {
+        // vector <vector <float>> myTrial = randChargeDistrib(mySig, geoMat);
 		// vector <vector <float>> myTrial = randChargeDistrib_discrete(mySig, geoMat);
-		// vector <vector <float>> myTrial = randChargeDistrib_tile(mySig, geoMat, myTiles, myLayer);
+		vector <vector <float>> myTrial = randChargeDistrib_tile(mySig, geoMat, myTiles, myLayer);
         float trialCost = computeCost(myTrial, mySig, geoMat, myLayer);
         if (trialCost < minCost) {
             minCost = trialCost;
