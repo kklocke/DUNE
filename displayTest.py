@@ -151,10 +151,14 @@ for i in range(numPaths):
         x = [float(elem1.split()[0]), float(elem2.split()[0])]
         y = [float(elem1.split()[1]), float(elem2.split()[1])]
         plt.plot(x, y, color='orange')
-    for j in range(len(xAll[i])):
-        elem1 = xAll[i][j]
-        elem2 = yAll[i][j]
-        plt.scatter(elem1, elem2, marker='D', color='green')
+    myElems = zip(xAll[i], yAll[i])
+    for j, elem in enumerate(myElems):
+        if elem == max(xAll[i]):
+            plt.scatter(elem, yAll[i][j], marker='D', color='green')
+    # for j in range(len(xAll[i])):
+    #     elem1 = xAll[i][j]
+    #     elem2 = yAll[i][j]
+    #     plt.scatter(elem1, elem2, marker='D', color='green')
     plt.show()
 
 

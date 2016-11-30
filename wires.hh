@@ -12,6 +12,19 @@ public:
 	float z; // z posn
     vector<Point> startPoints;
     vector<Point> endPoints;
+	void operator=(const wireArray &w) {
+		this->pitch = w.pitch;
+		this->angle = w.angle;
+		this->height = w.height;
+		this->length = w.length;
+		this->z = w.z;
+		for (int i = 0; i < (int)w.startPoints.size(); i++) {
+			this->startPoints.push_back(w.startPoints[i]);
+		}
+		for (int i = 0; i < (int)w.endPoints.size(); i++) {
+			this->endPoints.push_back(w.endPoints[i]);
+		}
+	}
 	wireArray(float pitch, float angle, float l, float h, float z) : pitch(pitch), angle(angle), height(h), length(l), z(z) {
 		float xPos = 0., yPos = h;
 		float xIncr = pitch / fabs(sin(M_PI * angle / 180));
@@ -190,6 +203,15 @@ public:
 		vertical = wireArray(pitch, 90., l, h, z);
 		lSlant = wireArray(pitch, 54.3, l, h, z);
 		rSlant = wireArray(pitch, -54.3, l, h, z);
+	}
+	void operator=(const wireLayer &w) {
+		this->pitch = w.pitch;
+		this->length = w.length;
+		this->height = w.height;
+		this->z = w.z;
+		this->vertical = w.vertical;
+		this->lSlant = w.lSlant;
+		this->rSlant = w.rSlant;
 	}
 	vector <vector <int>> allCrossings(Point p1, Point p2) {
 		vector <vector <int>> all3;
@@ -653,7 +675,7 @@ vector <vector <float>> randChargeDistrib_discrete(vector <float> mySig, vector 
 float computeCost(vector <vector <float>> trial, vector <float> mySig,vector<vector <int>> geoMat, wireLayer myLayer) {
     float myCost = 0;
     for (int i = 0; i < (int)mySig.size(); i++) {
-        myCost += 100*pow(trial[1][i],2)/mySig[i]; //1000 prefactor works nicely
+        myCost += pow(trial[1][i],2)/mySig[i]; //1000 prefactor works nicely
 		//myCost += pow(trial[1][i], 2);
     }
 
@@ -675,7 +697,7 @@ vector <float> solveCharge(vector <float> mySig, vector <vector <int>> geoMat, w
     int tryCount = 0;
     float minCost = numeric_limits<float>::infinity();
     vector <float> bestDistrib ((int)geoMat[0].size(), -1.);
-    while (tryCount < 10000) {
+    while (tryCount < 1000) {
         // vector <vector <float>> myTrial = randChargeDistrib(mySig, geoMat);
 		// vector <vector <float>> myTrial = randChargeDistrib_discrete(mySig, geoMat);
 		vector <vector <float>> myTrial = randChargeDistrib_tile(mySig, geoMat, myTiles, myLayer);
@@ -692,6 +714,56 @@ vector <float> solveCharge(vector <float> mySig, vector <vector <int>> geoMat, w
 
 
 
+vector <vector <vector <float>>> randChargeDistrib_multi(vector <vector <float>> allSigs, vector <vector <vector <int>>> allGeoMats, vector <vector <Cell>> allTiles, vector <wireLayer> allLayers) {
+	vector <vector <vector <float>>> allDistribs;
+	for (int i = 0; i < (int)allSigs.size(); i++) {
+		//allDistribs.push_back(randChargeDistrib_tile(allSigs[i], allGeoMats[i], allTiles[i], allLayers[i]));
+		allDistribs.push_back(randChargeDistrib(allSigs[i], allGeoMats[i]));
+	}
+	return allDistribs;
+}
+
+float computeCostMulti(vector <vector <vector <float>>> allTrials, vector <vector <float>> allSigs, vector <vector <vector <int>>> allGeoMats, vector <wireLayer> allLayers) {
+	float myCost = 0.;
+	for (int i = 0; i < (int)allTrials.size(); i++) {
+		myCost += computeCost(allTrials[i], allSigs[i], allGeoMats[i], allLayers[i]);
+	}
+	for (int i = 0; i < (int)allTrials.size(); i++) {
+		for (int j = i+1; j < (int)allTrials.size(); j++) {
+			// compute the packing cost between these two
+			for (int a = 0; a < (int)allSigs[i].size(); a++) {
+				for (int b = 0; b  < (int)allSigs[j].size(); b++) {
+					float xDiff = allLayers[i].grids[a].x - allLayers[j].grids[b].x;
+					float yDiff = allLayers[i].grids[a].y - allLayers[j].grids[b].y;
+					myCost += allSigs[i][a] * allSigs[j][b] *(pow(xDiff, 2) + pow(yDiff, 2));
+				}
+			}
+		}
+	}
+	// add spacial term
+	return myCost;
+}
+
+
+vector <vector <float>> solveChargeMulti(vector <vector <float>> allSigs, vector <vector <vector <int>>> allGeoMats, vector <wireLayer> allLayers, vector <vector <Cell>> allTiles) {
+	int tryCount = 0;
+	float minCost = numeric_limits<float>::infinity();
+	vector <vector <float>> bestDistrib;
+	while (tryCount < 1000) {
+		vector <vector <vector <float>>> allTrials = randChargeDistrib_multi(allSigs, allGeoMats, allTiles, allLayers);
+		float trialCost = computeCostMulti(allTrials, allSigs, allGeoMats, allLayers);
+		if (trialCost < minCost) {
+			minCost = trialCost;
+			bestDistrib.clear();
+			for (int i = 0; i < (int)allTrials.size(); i++) {
+				bestDistrib.push_back(allTrials[i][0]);
+			}
+			tryCount = 0;
+		}
+		tryCount++;
+	}
+	return bestDistrib;
+}
 
 
 vector <float> solveTrue(vector <float> mySig, vector <vector <int>> geoMat) {

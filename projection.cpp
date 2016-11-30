@@ -27,7 +27,7 @@ int main () {
 	cout << "\tPhi: " << myEvent.path2.phi << endl;
 	// print path1
 	// print path2
-	wireArray test = wireArray(3., 45., 200., 200., 0.);
+	wireArray test = wireArray(3., 60., 200., 200., 0.);
 	wireLayer testLayer = wireLayer(200., 200., 0., 3.);
 	Point endPath = myEvent.vertex + myEvent.path1.path2vec();
 	cout << "My end path: ";

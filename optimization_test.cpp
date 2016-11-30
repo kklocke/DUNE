@@ -82,7 +82,9 @@ int main () {
 	vector <vector <int>> myMatrix = testLayer.geoMatrix_test(signals);
 	cout << myMatrix.size();
 	vector <Cell> allCells = tiling(testLayer, 200., 200., testLayer.signalVec(myEvent.path1));
-	vector <float> trueSig = solveCharge(mySig, myMatrix, testLayer, allCells);
+	vector <Blob> allBlobs = tile2blob(allCells);
+	//vector <float> trueSig = solveCharge(mySig, myMatrix, testLayer, allCells);
+	vector <float> trueSig = solveCharge(mySig, myMatrix, testLayer, allBlobs[0].cells);
 	cout << "True Signal\n";
 	ofstream pointsFile;
 	pointsFile.open("opt_displayPoints.txt");
