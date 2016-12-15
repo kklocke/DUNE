@@ -11,6 +11,7 @@ public:
     vector <vector <Point>> rLines;
     vector <Point> vertices;
     int wireNums [3];
+    vector <vector <bool>> touches;
 
 
 
@@ -23,55 +24,85 @@ public:
         wireNums[0] = w[0];
         wireNums[1] = w[1];
         wireNums[2] = w[2];
+        for (int i = 0; i < 3; i++) {
+            vector <bool> temp;
+            temp.push_back(false);
+            temp.push_back(false);
+            this->touches.push_back(temp);
+        }
         // ordering of the vertices is really important for tile coloring for display
 
         Point p1 = intersection(lLines[0][0], lLines[0][1], rLines[1][0], rLines[1][1]);
         if (betweenLines(p1, vLines)) {
             vertices.push_back(p1);
+            touches[1][0] = true;
+            touches[2][1] = true;
         }
         Point p2 = intersection(vLines[0][0], vLines[0][1], rLines[1][0], rLines[1][1]);
         if (betweenLines(p2, lLines)) {
             vertices.push_back(p2);
+            touches[0][0] = true;
+            touches[2][1] = true;
         }
         Point p3 = intersection(vLines[0][0], vLines[0][1], lLines[0][0], lLines[0][1]);
         if (betweenLines(p3, rLines)) {
             vertices.push_back(p3);
+            touches[0][0] = true;
+            touches[1][0] = true;
         }
         Point p4 = intersection(lLines[0][0], lLines[0][1], rLines[0][0], rLines[0][1]);
         if (betweenLines(p4, vLines)) {
             vertices.push_back(p4);
+            touches[1][0] = true;
+            touches[2][0] = true;
         }
         Point p5 = intersection(vLines[0][0], vLines[0][1], rLines[0][0], rLines[0][1]);
         if (betweenLines(p5, lLines)) {
             vertices.push_back(p5);
+            touches[0][0] = true;
+            touches[2][0] = true;
         }
         Point p6 = intersection(lLines[1][0], lLines[1][1], vLines[0][0], vLines[0][1]);
         if (betweenLines(p6, rLines)) {
             vertices.push_back(p6);
+            touches[1][1] = true;
+            touches[0][0] = true;
         }
         Point p7 = intersection(rLines[0][0], rLines[0][1], lLines[1][0], lLines[1][1]);
         if (betweenLines(p7, vLines)) {
             vertices.push_back(p7);
+            touches[1][1] = true;
+            touches[2][0] = true;
         }
         Point p8 = intersection(rLines[0][0], rLines[0][1], vLines[1][0], vLines[1][1]);
         if (betweenLines(p8, lLines)) {
             vertices.push_back(p8);
+            touches[2][0] = true;
+            touches[0][1] = true;
         }
         Point p9 = intersection(lLines[1][0], lLines[1][1], vLines[1][0], vLines[1][1]);
         if (betweenLines(p9, rLines)) {
             vertices.push_back(p9);
+            touches[1][1] = true;
+            touches[0][1] = true;
         }
         Point p10 = intersection(lLines[1][0], lLines[1][1], rLines[1][0], rLines[1][1]);
         if (betweenLines(p10, vLines)) {
             vertices.push_back(p10);
+            touches[1][1] = true;
+            touches[2][1] = true;
         }
         Point p11 = intersection(vLines[1][0], vLines[1][1], rLines[1][0], rLines[1][1]);
         if (betweenLines(p11, lLines)) {
             vertices.push_back(p11);
+            touches[0][1] = true;
+            touches[2][1] = true;
         }
         Point p12 = intersection(lLines[0][0], lLines[0][1], vLines[1][0], vLines[1][1]);
         if (betweenLines(p12, rLines)) {
             vertices.push_back(p12);
+            touches[1][0] = true;
+            touches[0][1] = true;
         }
 
         // for (int i = 0; i < 2; i++) {

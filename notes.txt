@@ -1,0 +1,166 @@
+5 mm gaps between wires
+angle 35.7 from vertical --> 54.3 degree from horizontal
+
+
+
+Chris's thoughts 11/17
+    one term that is the chi-squared of the prediction of the wires versus the observed
+    on the wires (i.e. this is what wirecell does)
+    one term that does preference for compact
+        define compact - work out potential energy by considering each site as a mass
+        product of every site div by some product
+        two sites close together with charge gives big score
+        could use euclidean distance
+    one more term, limits the amount of charge in a given time slice to a fixed amount (i.e
+    what was observed)
+    momentum
+    constrain to have positive charges
+    is a quadratic thing to minimize
+    support vector machine?
+    want to preserve gaps when there are gaps, so this may be an issue
+    monte carlo the minimization
+    pick random spacial and temporal cells --> take pairs and minimize
+
+    look into quadratic minimization packages.
+
+    the metric described above could also be good for metric to judge the pred
+    versus the real
+
+
+    consider the total charge to indicate the complexity of the solutions
+
+    Huff transform?
+        it is a way for finding straight lines in a 2D picture
+        need a 3D huff space?
+
+
+    Try subtracting out the expected parts of the lines??
+
+
+    Maybe only run the line fitting is the potential metric makes a mess of things
+
+
+
+
+Start by trying the chi-transform and potential
+
+
+// outline for how to do optimization over several time slices:
+
+// need to pass in vector of vector of cells
+// need to pass in vector of wire arrays
+// need to pass in vector of wire signals
+// need to pass in vector of geomatrices
+
+// iteratively:
+    // create random distrib in each of the slices
+    // compute cost in each slices
+    // add cost between the slices
+    // minimize over this cost
+// return the best distribution
+
+
+
+// I will initially write blobs and float versions
+
+Calculate the score that we would want to see based on the true path
+Asymmetry around the wire
+Stochastic cooling/annealing
+Add temporal distance term
+
+annealing or genetic algorithm is definitely the next step
+permutation should change sufficient numbers to have some effect and not be computationally inefficient
+
+
+
+
+
+
+// outline for finding true point distribution, place 10 at each true position
+
+// break the line into little chunks (smaller than the pitch)
+// for each:
+    // intersect with the wire array
+    // if it crosses at least two different lines:
+        // push the intersection into the set of true
+        // make sure not to use a particular wire more than once
+
+
+
+vector <vector <float>> path2sig(Path p, wireLayer myLayer) {
+    float stepSize = myLayer.pitch / 3.
+    int numSteps = int(p.length / stepSize);
+    Point step = p.path2vec().scalarMult(stepSize / p.length);
+    Point startPt = p.vertex;
+    Point endPt = p.vertex + step;
+    for (int i = 0; i < numSteps; i++) {
+        vector <vector <int>> layerCross = myLayer.allCrossings(startPt, endPt);
+        // process the above
+        int myWires[3];
+        for (int j = 0; j < 3; j++) {
+            if (!layerCross[j].empty()) {
+                myWires[j] = layerCross[j][0];
+            }
+            else {
+            myWires[j] = -1;
+            }
+        }
+        // check if the interesections are in the grids
+        if ((myWires[0] != -1) && (myWires[1] != -1) && (myWires[2] != -1)) {
+            // check for the intersection of all 3
+        }
+        else if ((myWires[0] != -1) && (myWires[1] != -1)) {
+            if (myWires[1] != -1) {
+                // check this intersection
+            }
+            else if (myWires[2] != -1) {
+                // check this intersection
+            }
+        }
+        else if ((myWires[1] != -1) && (myWires[2] != -1)) {
+            // check this intersection
+        }
+        // if so, add charge to the relevant intersection(s)
+        endPt += step;
+        startPt += step;
+    }
+    // calculate with startPt and actual end of the path
+}
+
+
+** once i fix the way cells and wires work:
+// step along the line
+// for each step:
+    // check which wire in each dim it is closest to
+    // then overlap these, and you have the desired cell
+
+
+// outline for score against the truth:
+
+// do a chi-squared on the predicted versus the truth
+
+float chiSquare(vector <float> expect, vector <float> observed) {
+    float myScore = 0.;
+    for (int i = 0; i < (int)expect.size(); i++) {
+        myScore += pow(observed[i] - expect[i], 2) / expect[i];
+    }
+    // do I need to normalize for dof?
+    return myScore;
+}
+
+
+
+// outline for genetic approach
+// generate a fixed number of guesses
+// take the top 100 or something
+    // mutate and transpose
+    // score the new ones and refresh the top 100
+    // repeat until some number of trials have passed without improvement to the cost
+
+
+TO DO ASAP:
+    # rewrite wire layer and array operations
+    # rewrite the computation of true charge on wires
+    # rewrite solvers to account for new wire definition
+    # write scoring system and path to charge function given the new wire definition
+    # switch exclusively to the cell based method, and adjust appropriately

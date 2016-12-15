@@ -11,6 +11,9 @@ optimization : optimization_test.o
 multiOpt : multi_test.o
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) -O2 -larmadillo -llapack -lblas
 
+cellTest : cell_testing.o
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) -O2 -larmadillo -llapack -lblas
+
 testProj : projection
 	./projection
 	python displayTest.py

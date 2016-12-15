@@ -24,6 +24,11 @@ public:
 		sumPt.z = this->z + p.z;
 		return sumPt;
 	}
+	void operator+=(const Point& p) {
+		this->x += p.x;
+		this->y += p.y;
+		this->z += p.z;
+	}
 	Point operator-(const Point& p) {
 		Point diffPt;
 		diffPt.x = this->x - p.x;

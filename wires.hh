@@ -515,11 +515,20 @@ vector <vector <int>> geoMatrix_test(vector <float> mySig) {
 
 
 vector <vector <float>> randChargeDistrib(vector <float> mySig, vector <vector <int>> geoMat) {
+	//cout << "pre-start randcharge distrib\n";
     vector <float> remain = mySig;
+	if (geoMat.size() == 0) {
+		vector <float> myCharge (0, 0.);
+		vector <vector <float>> toReturn;
+		toReturn.push_back(myCharge);
+		toReturn.push_back(remain);
+		return toReturn;
+	}
     vector <float> myCharge ((int)geoMat[0].size(), 0.);
+	//cout << "start randcharge distrib\n";
     for (int i = 0; i < (int)myCharge.size(); i++) {
         float minRem = numeric_limits<float>::infinity();
-        vector <int> toDec;
+        vector <int> toDec(0);
         for (int j = 0; j < (int)mySig.size(); j++) {
             if (geoMat[j][i] > 0.) {
                 minRem = min(remain[j], minRem);
@@ -538,6 +547,7 @@ vector <vector <float>> randChargeDistrib(vector <float> mySig, vector <vector <
             remain[toDec[j]] -= charge;
         }
     }
+	//cout << "End rand charge distrib\n";
     vector <vector <float>> toReturn;
     toReturn.push_back(myCharge);
     toReturn.push_back(remain);
@@ -674,22 +684,24 @@ vector <vector <float>> randChargeDistrib_discrete(vector <float> mySig, vector 
 
 float computeCost(vector <vector <float>> trial, vector <float> mySig,vector<vector <int>> geoMat, wireLayer myLayer) {
     float myCost = 0;
+	//cout << "trying compute Cost\n";
     for (int i = 0; i < (int)mySig.size(); i++) {
         myCost += pow(trial[1][i],2)/mySig[i]; //1000 prefactor works nicely
 		//myCost += pow(trial[1][i], 2);
     }
+	//out << "computed the chi-squared\n";
 
 	for (int i = 0; i < (int)mySig.size(); i++) {
-		for (int j = i; j < (int)mySig.size(); j++) {
+		for (int j = i+1; j < (int)mySig.size(); j++) {
 			float xDiff = myLayer.grids[i].x - myLayer.grids[j].x;
 			float yDiff = myLayer.grids[i].y - myLayer.grids[j].y;
 			myCost +=  mySig[i] * mySig[j] * (pow(xDiff,2) + pow(yDiff, 2));
 		}
 	}
+	//cout << "computed packing component\n";
 
-    // add stuff about spacial packing
 
-    return myCost;
+    return myCost
 }
 
 
@@ -717,8 +729,8 @@ vector <float> solveCharge(vector <float> mySig, vector <vector <int>> geoMat, w
 vector <vector <vector <float>>> randChargeDistrib_multi(vector <vector <float>> allSigs, vector <vector <vector <int>>> allGeoMats, vector <vector <Cell>> allTiles, vector <wireLayer> allLayers) {
 	vector <vector <vector <float>>> allDistribs;
 	for (int i = 0; i < (int)allSigs.size(); i++) {
-		//allDistribs.push_back(randChargeDistrib_tile(allSigs[i], allGeoMats[i], allTiles[i], allLayers[i]));
-		allDistribs.push_back(randChargeDistrib(allSigs[i], allGeoMats[i]));
+		allDistribs.push_back(randChargeDistrib_tile(allSigs[i], allGeoMats[i], allTiles[i], allLayers[i]));
+		// allDistribs.push_back(randChargeDistrib(allSigs[i], allGeoMats[i]));
 	}
 	return allDistribs;
 }
@@ -728,18 +740,29 @@ float computeCostMulti(vector <vector <vector <float>>> allTrials, vector <vecto
 	for (int i = 0; i < (int)allTrials.size(); i++) {
 		myCost += computeCost(allTrials[i], allSigs[i], allGeoMats[i], allLayers[i]);
 	}
+	//cout << "computed individual costs in multi\n";
+	//cout << "All trials size: " << allTrials.size() << endl;
 	for (int i = 0; i < (int)allTrials.size(); i++) {
+		//cout << "In first multi packing loop\n";
 		for (int j = i+1; j < (int)allTrials.size(); j++) {
 			// compute the packing cost between these two
+			//cout << "in second multipacking loop\n";
+			//cout << "allSigs[" << i << "] size: " << allSigs[i].size() << endl;
 			for (int a = 0; a < (int)allSigs[i].size(); a++) {
+				//cout << "in third multipacking loop\n";
+				//cout << "allSigs[" << j << "] size: " << allSigs[j].size() << endl;
 				for (int b = 0; b  < (int)allSigs[j].size(); b++) {
+					//cout << "in fourth multipacking loop\n";
+					//cout << "first one grids size: " << allLayers[i].grids.size() << endl;
+					//cout << "second one grids size: " << allLayers[j].grids.size() << endl;
 					float xDiff = allLayers[i].grids[a].x - allLayers[j].grids[b].x;
 					float yDiff = allLayers[i].grids[a].y - allLayers[j].grids[b].y;
-					myCost += allSigs[i][a] * allSigs[j][b] *(pow(xDiff, 2) + pow(yDiff, 2));
+					myCost += 10*allSigs[i][a] * allSigs[j][b] * (pow(xDiff, 2) + pow(yDiff, 2));
 				}
 			}
 		}
 	}
+	//cout << "computed multi pacing term\n";
 	// add spacial term
 	return myCost;
 }
@@ -749,7 +772,7 @@ vector <vector <float>> solveChargeMulti(vector <vector <float>> allSigs, vector
 	int tryCount = 0;
 	float minCost = numeric_limits<float>::infinity();
 	vector <vector <float>> bestDistrib;
-	while (tryCount < 1000) {
+	while (tryCount < 3000) {
 		vector <vector <vector <float>>> allTrials = randChargeDistrib_multi(allSigs, allGeoMats, allTiles, allLayers);
 		float trialCost = computeCostMulti(allTrials, allSigs, allGeoMats, allLayers);
 		if (trialCost < minCost) {
