@@ -701,7 +701,7 @@ float computeCost(vector <vector <float>> trial, vector <float> mySig,vector<vec
 	//cout << "computed packing component\n";
 
 
-    return myCost
+    return myCost;
 }
 
 

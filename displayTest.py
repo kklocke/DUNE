@@ -137,7 +137,7 @@ for line in f:
 f.close()
 
 
-# now display the shit
+# now display
 for i in range(numPaths):
     # plot the wire array
     # plot the point

@@ -250,10 +250,13 @@ public:
         int numRows = vSize + lSize + rSize - 3;
         vector <vector <int>> myMatrix;
         vector <vector <int>> transposeMat;
+        cout << "vSize: " << vSize << endl;
+        cout << "lSize: " << lSize << endl;
+        cout << "rSize: " << rSize << endl;
 
         // generate all of the cells, then construct matrix accordingly
-
-        for (int i = 1; i < vSize - 1; i++) {
+        // cout << "Entering the loop\n";
+        for (int i = 0; i < vSize - 1; i++) {
         	if (hit[i] == 0) {
         		continue;
         	}
@@ -267,7 +270,7 @@ public:
         	tempV.push_back(vertical.endPoints[i+1]);
         	v.push_back(tempV);
         	tempV.clear();
-        	for (int j = 1; j < lSize - 1; j++) {
+        	for (int j = 0; j < lSize - 1; j++) {
         		if (hit[vSize + j] == 0) {
         			continue;
         		}
@@ -281,7 +284,7 @@ public:
         		tempL.push_back(lSlant.endPoints[j+1]);
         		l.push_back(tempL);
         		tempL.clear();
-        		for (int k = 1; k < rSize - 1; k++) {
+        		for (int k = 0; k < rSize - 1; k++) {
         			if (hit[vSize + lSize + k] == 0) {
         				continue;
         			}
@@ -296,8 +299,11 @@ public:
         			r.push_back(tempR);
         			tempR.clear();
         			int myNums [3] = {i, j, k};
+                    // cout << "Trying wire triplet: " << i << "\t" << j << "\t" << k << endl;
+                    // cout << "\tLimits (v, l, r): " << vSize << ", " << lSize << ", " << rSize << endl;
         			Cell myCell = Cell(v, l, r, myNums);
-        			if (myCell.vertices.size() >= 3) {
+                    // cout << "\t Made the cell\n";
+                    if (myCell.vertices.size() >= 3) {
         				int flag = 0;
         				for (int c = 0; c < (int)myCell.vertices.size(); c++) {
         					Point myCheck = myCell.vertices[c];
@@ -309,37 +315,41 @@ public:
         				if (flag == 0) {
         					this->cells.push_back(myCell);
                             // SET THE Transposed matrix Rows
+                            // cout << "trying to make a matrix row\t";
                             vector <int> tempRow (numRows, 0);
-                            tempRow[i - 1] = 1;
-                            tempRow[j + vSize - 2] = 1;
-                            tempRow[k + vSize + lSize - 3] = 1;
+                            tempRow[i] = 1;
+                            tempRow[j + vSize - 1] = 1;
+                            tempRow[k + vSize + lSize - 2] = 1;
                             transposeMat.push_back(tempRow);
+                            // cout << "made the row \n";
         				}
         			}
         		}
         	}
         }
+        // cout << "Out of the loop, trying to transpose" << endl;
         // Now transpose the matrix to get myMatrix
         int numCols = transposeMat.size();
         for (int i = 0; i < numRows; i++) {
-            vector <int> tempRow;
+            vector <int> tempRow(numCols, 0);
             for (int j = 0; j < numCols; j++) {
                 tempRow[j] = transposeMat[j][i];
             }
             myMatrix.push_back(tempRow);
         }
         return myMatrix;
+        // return transposeMat;
     }
 
     vector <float> signalVec(Path p) {
         int vDim = this->vertical.startPoints.size();
         int lDim = this->lSlant.startPoints.size();
         int rDim = this->rSlant.startPoints.size();
-        vector <float> sigVec(vDim + lDim + rDim, 0.);
+        vector <float> sigVec(vDim + lDim + rDim - 3, 0.);
         // go in short intervals?
         // break it up and find which cells I go through
         map <vector<int>, int> cellSeen;
-        float stepSize = this->pitch / 3.;
+        float stepSize = this->pitch / 5.;
         int numSteps = int(p.length / stepSize);
         Point currentPt = p.vertex;
         Point step = p.path2vec().scalarMult(stepSize / p.length);
@@ -352,13 +362,13 @@ public:
             int lPlace = -1;
             int rPlace = -1;
             for (int j = 0; j < vDim; j++) {
-                if (this->vertical.startPoints[j].x < currentPt.x) {
-                    vPlace = j;
+                if (this->vertical.startPoints[j].x > currentPt.x) {
+                    vPlace = j - 1;
                     break;
                 }
             }
             for (int j = 0; j < lDim; j++) {
-                float slope = tan(this->lSlant.angle);
+                float slope = tan(this->lSlant.angle * M_PI / 180.);
                 float predY = this->lSlant.startPoints[j].y + slope * (currentPt.x - this->lSlant.startPoints[j].x);
                 if (predY < currentPt.y) {
                     lPlace = j - 1;
@@ -367,7 +377,7 @@ public:
             }
 
             for (int j = 0; j < rDim; j++) {
-                float slope = tan(this->rSlant.angle);
+                float slope = tan(this->rSlant.angle * M_PI / 180.);
                 float predY = this->rSlant.startPoints[j].y + slope * (currentPt.x - this->rSlant.startPoints[j].x);
                 if (predY > currentPt.y) {
                     rPlace = j - 1;
@@ -382,77 +392,241 @@ public:
             currentPt += step;
         }
         for (map<vector <int>, int>::iterator j = cellSeen.begin(); j != cellSeen.end(); j++) {
-            // build this cell
+            //add charge on the "wires" associated with the cell,
+            // "wires" indexing has the same index as the bounding lines
             vector <int> myNums = j->first;
-            int nums[3] = {myNums[0], myNums[1], myNums[2]};
-            vector <vector <Point>> v;
-            vector <Point> tempV1;
-            vector <Point> tempV2;
-            tempV1.push_back(this->vertical.startPoints[myNums[0]]);
-            tempV1.push_back(this->vertical.endPoints[myNums[0]]);
-            tempV2.push_back(this->vertical.startPoints[myNums[0] + 1]);
-            tempV2.push_back(this->vertical.endPoints[myNums[0] + 1]);
-            v.push_back(tempV1);
-            v.push_back(tempV2);
-            vector <vector <Point>> l;
-            vector <Point> tempL1;
-            vector <Point> tempL2;
-            tempL1.push_back(this->lSlant.startPoints[myNums[1]]);
-            tempL1.push_back(this->lSlant.endPoints[myNums[1]]);
-            tempL2.push_back(this->lSlant.startPoints[myNums[1] + 1]);
-            tempL2.push_back(this->lSlant.endPoints[myNums[1] + 1]);
-            l.push_back(tempL1);
-            l.push_back(tempL2);
-            vector <vector <Point>> r;
-            vector <Point> tempR1;
-            vector <Point> tempR2;
-            tempR1.push_back(this->rSlant.startPoints[myNums[2]]);
-            tempR1.push_back(this->rSlant.endPoints[myNums[2]]);
-            tempR2.push_back(this->rSlant.startPoints[myNums[2] + 1]);
-            tempR2.push_back(this->rSlant.endPoints[myNums[2] + 1]);
-            r.push_back(tempR1);
-            r.push_back(tempR2);
-            Cell c(v, l , r, nums);
-            if (c.touches[0][0]) {
-                if (c.touches[0][1]) {
-                    sigVec[myNums[0]] += 5.;
-                    sigVec[myNums[0] + 1] += 5.;
-                }
-                else {
-                    sigVec[myNums[0]] += 10.;
-                }
-            }
-            else if (c.touches[0][1]) {
-                sigVec[myNums[0] + 1] += 10.;
-            }
-            if (c.touches[1][0]) {
-                if (c.touches[1][1]) {
-                    sigVec[vDim + myNums[1]] += 5.;
-                    sigVec[vDim + myNums[1] + 1] += 5.;
-                }
-                else {
-                    sigVec[vDim + myNums[1]] += 10.;
-                }
-            }
-            else if (c.touches[1][1]) {
-                sigVec[vDim + myNums[1] + 1] += 10.;
-            }
-            if (c.touches[2][0]) {
-                if (c.touches[2][1]) {
-                    sigVec[vDim + lDim + myNums[2]] += 5.;
-                    sigVec[vDim + lDim + myNums[2] + 1] += 5.;
-                }
-                else {
-                    sigVec[vDim + lDim + myNums[2]] += 10.;
-                }
-            }
-            else if (c.touches[2][1]) {
-                sigVec[vDim + lDim + myNums[2] + 1] += 10.;
-            }
+            sigVec[myNums[0]] += 10;
+            sigVec[myNums[1] + vDim - 1] += 10;
+            sigVec[myNums[2] + vDim + lDim - 2] += 10;
         }
+        // for (map<vector <int>, int>::iterator j = cellSeen.begin(); j != cellSeen.end(); j++) {
+        //     // build this cell
+        //     vector <int> myNums = j->first;
+        //     int nums[3] = {myNums[0], myNums[1], myNums[2]};
+        //     vector <vector <Point>> v;
+        //     vector <Point> tempV1;
+        //     vector <Point> tempV2;
+        //     tempV1.push_back(this->vertical.startPoints[myNums[0]]);
+        //     tempV1.push_back(this->vertical.endPoints[myNums[0]]);
+        //     tempV2.push_back(this->vertical.startPoints[myNums[0] + 1]);
+        //     tempV2.push_back(this->vertical.endPoints[myNums[0] + 1]);
+        //     v.push_back(tempV1);
+        //     v.push_back(tempV2);
+        //     vector <vector <Point>> l;
+        //     vector <Point> tempL1;
+        //     vector <Point> tempL2;
+        //     tempL1.push_back(this->lSlant.startPoints[myNums[1]]);
+        //     tempL1.push_back(this->lSlant.endPoints[myNums[1]]);
+        //     tempL2.push_back(this->lSlant.startPoints[myNums[1] + 1]);
+        //     tempL2.push_back(this->lSlant.endPoints[myNums[1] + 1]);
+        //     l.push_back(tempL1);
+        //     l.push_back(tempL2);
+        //     vector <vector <Point>> r;
+        //     vector <Point> tempR1;
+        //     vector <Point> tempR2;
+        //     tempR1.push_back(this->rSlant.startPoints[myNums[2]]);
+        //     tempR1.push_back(this->rSlant.endPoints[myNums[2]]);
+        //     tempR2.push_back(this->rSlant.startPoints[myNums[2] + 1]);
+        //     tempR2.push_back(this->rSlant.endPoints[myNums[2] + 1]);
+        //     r.push_back(tempR1);
+        //     r.push_back(tempR2);
+        //     Cell c(v, l , r, nums);
+        //     if (c.touches[0][0]) {
+        //         if (c.touches[0][1]) {
+        //             sigVec[myNums[0]] += 5.;
+        //             sigVec[myNums[0] + 1] += 5.;
+        //         }
+        //         else {
+        //             sigVec[myNums[0]] += 10.;
+        //         }
+        //     }
+        //     else if (c.touches[0][1]) {
+        //         sigVec[myNums[0] + 1] += 10.;
+        //     }
+        //     if (c.touches[1][0]) {
+        //         if (c.touches[1][1]) {
+        //             sigVec[vDim + myNums[1]] += 5.;
+        //             sigVec[vDim + myNums[1] + 1] += 5.;
+        //         }
+        //         else {
+        //             sigVec[vDim + myNums[1]] += 10.;
+        //         }
+        //     }
+        //     else if (c.touches[1][1]) {
+        //         sigVec[vDim + myNums[1] + 1] += 10.;
+        //     }
+        //     if (c.touches[2][0]) {
+        //         if (c.touches[2][1]) {
+        //             sigVec[vDim + lDim + myNums[2]] += 5.;
+        //             sigVec[vDim + lDim + myNums[2] + 1] += 5.;
+        //         }
+        //         else {
+        //             sigVec[vDim + lDim + myNums[2]] += 10.;
+        //         }
+        //     }
+        //     else if (c.touches[2][1]) {
+        //         sigVec[vDim + lDim + myNums[2] + 1] += 10.;
+        //     }
+        // }
         return sigVec;
     }
+
+    // vector <float> signalVec(Path p) {
+    // 	int vDim = this->vertical.startPoints.size();
+    // 	int lDim = this->lSlant.startPoints.size();
+    // 	int rDim = this->rSlant.startPoints.size();
+    // 	vector <int> crossV = crossings(this->vertical, p.vertex, (p.vertex + p.path2vec()));
+    // 	vector <int> crossL = crossings(this->lSlant, p.vertex, (p.vertex + p.path2vec()));
+    // 	vector <int> crossR = crossings(this->rSlant, p.vertex, (p.vertex + p.path2vec()));
+    //     // cout << "vDim: " << vDim << endl;
+    //     // cout << "lDim: " << lDim << endl;
+    //     // cout << "rDim: " << rDim << endl;
+    //     // cout << "crossV dim: " << crossV.size() << endl;
+    //     // cout << "crossL dim: " << crossL.size() << endl;
+    //     // cout << "crossR dim: " << crossR.size() << endl;
+    //     vector <float> sigVec(vDim + lDim + rDim - 3, 0.);
+    //     // cout << "test 1" << endl;
+    //
+    //     if (crossV.empty()) {
+    //         // cout << "V EMPTY\n";
+    //         int vPlace = -1;
+    //         for (int i = 0; i < vDim; i++) {
+    //             if (p.vertex.x < this->vertical.startPoints[i].x) {
+    //                 vPlace = i - 1;
+    //             }
+    //         }
+    //         if (vPlace != -1) {
+    //             sigVec[vPlace] += 10;
+    //         }
+    //     }
+    //     else {
+    //         // if (crossV[0] == -1) {
+    //         //     cout << "v neg\n";
+    //         // }
+    //         for (int i = 0; i < (int)crossV.size(); i++) {
+    //     		sigVec[crossV[i]] += 10.;
+    //     	}
+    //         sigVec[crossV[0] - 1] += 10;
+    //         sigVec[crossV[crossV.size() - 1] + 1] += 10;
+    //         // cout << "wrote vert parts" << endl;
+    //     }
+    //
+    //     if (crossL.empty()) {
+    //         // cout << "L EMPTY\n";
+    //         int lPlace = -1;
+    //         for (int i = 0; i < lDim; i++) {
+    //             float predY = this->lSlant.startPoints[i].y + tan(this->lSlant.angle)*(p.vertex.x - this->lSlant.startPoints[i].x);
+    //             if (predY < p.vertex.y) {
+    //                 lPlace = i - 1;
+    //             }
+    //         }
+    //         if (lPlace != -1) {
+    //             sigVec[lPlace + vDim - 1] += 10;
+    //         }
+    //     }
+    //     else {
+    //         // if (crossL[0] == -1) {
+    //         //     cout << "l neg\n";
+    //         // }
+    //         for (int i = 0; i < (int)crossL.size(); i++) {
+    //             sigVec[crossL[i] + vDim - 1] += 10.;
+    //         }
+    //         sigVec[crossL[0] + vDim - 1 - 1] += 10;
+    //         sigVec[crossL[crossL.size() - 1] + vDim - 1 + 1] += 10;
+    //         // cout << "wrote lSlant parts" << endl;
+    //     }
+    //
+    //     if (crossR.empty()) {
+    //         // cout << "R EMPTY\n";
+    //         int rPlace = -1;
+    //         for (int i = 0; i < rDim; i++) {
+    //             float predY = this->rSlant.startPoints[i].y + tan(this->rSlant.angle) * (p.vertex.x - this->rSlant.startPoints[i].x);
+    //             if (predY > p.vertex.y) {
+    //                 rPlace = i - 1;
+    //             }
+    //         }
+    //         if (rPlace != -1) {
+    //             sigVec[rPlace + vDim + lDim - 2] += 10;
+    //         }
+    //     }
+    //     else {
+    //         // if (crossR[0] == -1) {
+    //         //     cout << "r neg\n";
+    //         // }
+    //         for (int i = 0; i < (int)crossR.size(); i++) {
+    //     		sigVec[crossR[i] + vDim + lDim - 2] += 10.;
+    //     	}
+    //         sigVec[crossR[0] + vDim + lDim - 2 - 1] += 10;
+    //         sigVec[crossR[crossR.size() - 1] + vDim + lDim - 2 + 1] += 10;
+    //         // cout << "wrote rSlant parts" << endl;
+    //     }
+    //
+    //     // cout << "all done with sigvec" << endl;
+    // 	return sigVec;
+    // }
 };
+
+vector <float> path2true(Path p, wireLayer myLayer) {
+    int vDim = myLayer.vertical.startPoints.size();
+    int lDim = myLayer.lSlant.startPoints.size();
+    int rDim = myLayer.rSlant.startPoints.size();
+    vector <float> sigVec(vDim + lDim + rDim - 3, 0.);
+    // go in short intervals?
+    // break it up and find which cells I go through
+    map <vector<int>, int> cellSeen;
+    float stepSize = myLayer.pitch / 5.;
+    int numSteps = int(p.length / stepSize);
+    Point currentPt = p.vertex;
+    Point step = p.path2vec().scalarMult(stepSize / p.length);
+    for (int i = 0; i <= numSteps; i++) {
+        if (i == numSteps) {
+            currentPt = p.vertex + p.path2vec();
+        }
+        // find vertical boundaries
+        int vPlace = -1;
+        int lPlace = -1;
+        int rPlace = -1;
+        for (int j = 0; j < vDim; j++) {
+            if (myLayer.vertical.startPoints[j].x > currentPt.x) {
+                vPlace = j - 1;
+                break;
+            }
+        }
+        for (int j = 0; j < lDim; j++) {
+            float slope = tan(myLayer.lSlant.angle * M_PI / 180.);
+            float predY = myLayer.lSlant.startPoints[j].y + slope * (currentPt.x - myLayer.lSlant.startPoints[j].x);
+            if (predY < currentPt.y) {
+                lPlace = j - 1;
+                break;
+            }
+        }
+
+        for (int j = 0; j < rDim; j++) {
+            float slope = tan(myLayer.rSlant.angle * M_PI / 180.);
+            float predY = myLayer.rSlant.startPoints[j].y + slope * (currentPt.x - myLayer.rSlant.startPoints[j].x);
+            if (predY > currentPt.y) {
+                rPlace = j - 1;
+                break;
+            }
+        }
+        vector <int> myNums;
+        myNums.push_back(vPlace);
+        myNums.push_back(lPlace);
+        myNums.push_back(rPlace);
+        cellSeen[myNums] = 1;
+        currentPt += step;
+    }
+    vector <float> myCharge((int)myLayer.cells.size(), 0.);
+    for (int i = 0; i < (int)myLayer.cells.size(); i++) {
+        for (map<vector <int>, int>::iterator j = cellSeen.begin(); j != cellSeen.end(); j++) {
+            vector <int> myNums = j->first;
+            if ((myNums[0] == myLayer.cells[i].wireNums[0]) && (myNums[1] == myLayer.cells[i].wireNums[1]) && (myNums[2] == myLayer.cells[i].wireNums[2])) {
+                myCharge[i] += 10.;
+            }
+        }
+    }
+    return myCharge;
+}
 
 vector <vector <float>> randChargeDistrib(vector <float> mySig, vector <vector <int>> geoMat, wireLayer myLayer) {
     vector <float> remain = mySig;
@@ -467,50 +641,140 @@ vector <vector <float>> randChargeDistrib(vector <float> mySig, vector <vector <
     random_shuffle(myOrder.begin(), myOrder.end());
     for (int i = 0; i < (int)myLayer.cells.size(); i++) {
         float minRem = numeric_limits<float>::infinity();
-        vector <int> vDec;
-        vector <int> lDec;
-        vector <int> rDec;
-        if (myLayer.cells[myOrder[i]].touches[0][0]) {
-            minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[0]]);
-            vDec.push_back(myLayer.cells[myOrder[i]].wireNums[0]);
-        }
-        if (myLayer.cells[myOrder[i]].touches[0][1]) {
-            minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[0] + 1]);
-            vDec.push_back(myLayer.cells[myOrder[i]].wireNums[0] + 1);
-        }
-        if (myLayer.cells[myOrder[i]].touches[1][0]) {
-            minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[1] + vDim]);
-            lDec.push_back(myLayer.cells[myOrder[i]].wireNums[1] + vDim);
-        }
-        if (myLayer.cells[myOrder[i]].touches[1][1]) {
-            minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[1] + vDim + 1]);
-            lDec.push_back(myLayer.cells[myOrder[i]].wireNums[1] + vDim + 1);
-        }
-        if (myLayer.cells[myOrder[i]].touches[2][0]) {
-            minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[2] + vDim + lDim]);
-            rDec.push_back(myLayer.cells[myOrder[i]].wireNums[2] + vDim + lDim);
-        }
-        if (myLayer.cells[myOrder[i]].touches[2][1]) {
-            minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[2] + vDim + lDim + 1]);
-            rDec.push_back(myLayer.cells[myOrder[i]].wireNums[2] + vDim + lDim + 1);
-        }
-        if (minRem > 0) {
-            // put charge in the cells
-            myCharge[myOrder[i]] = 10.;
-            // decrement the wires
-            for (int j = 0; j < (int)vDec.size(); j++) {
-                remain[vDec[j]] -= 10. / float(vDec.size());
-            }
-            for (int j = 0; j < (int)lDec.size(); j++) {
-                remain[lDec[j]] -= 10. / float(lDec.size());
-            }
-            for (int j = 0; j < (int)rDec.size(); j++) {
-                remain[rDec[j]] -= 10. / float(rDec.size());
-            }
-        }
+        minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[0]]);
+        minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[1] + vDim - 1]);
+        minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[2] + vDim + lDim - 2]);
+        // vector <int> vDec;
+        // vector <int> lDec;
+        // vector <int> rDec;
+        // if (myLayer.cells[myOrder[i]].touches[0][0]) {
+        //     minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[0]]);
+        //     vDec.push_back(myLayer.cells[myOrder[i]].wireNums[0]);
+        // }
+        // if (myLayer.cells[myOrder[i]].touches[0][1]) {
+        //     minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[0] + 1]);
+        //     vDec.push_back(myLayer.cells[myOrder[i]].wireNums[0] + 1);
+        // }
+        // if (myLayer.cells[myOrder[i]].touches[1][0]) {
+        //     minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[1] + vDim]);
+        //     lDec.push_back(myLayer.cells[myOrder[i]].wireNums[1] + vDim);
+        // }
+        // if (myLayer.cells[myOrder[i]].touches[1][1]) {
+        //     minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[1] + vDim + 1]);
+        //     lDec.push_back(myLayer.cells[myOrder[i]].wireNums[1] + vDim + 1);
+        // }
+        // if (myLayer.cells[myOrder[i]].touches[2][0]) {
+        //     minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[2] + vDim + lDim]);
+        //     rDec.push_back(myLayer.cells[myOrder[i]].wireNums[2] + vDim + lDim);
+        // }
+        // if (myLayer.cells[myOrder[i]].touches[2][1]) {
+        //     minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[2] + vDim + lDim + 1]);
+        //     rDec.push_back(myLayer.cells[myOrder[i]].wireNums[2] + vDim + lDim + 1);
+        // }
+        // if (minRem > 0) {
+        //     // put charge in the cells
+        //     myCharge[myOrder[i]] = 10.;
+        //     // decrement the wires
+        //     for (int j = 0; j < (int)vDec.size(); j++) {
+        //         remain[vDec[j]] -= 10. / float(vDec.size());
+        //     }
+        //     for (int j = 0; j < (int)lDec.size(); j++) {
+        //         remain[lDec[j]] -= 10. / float(lDec.size());
+        //     }
+        //     for (int j = 0; j < (int)rDec.size(); j++) {
+        //         remain[rDec[j]] -= 10. / float(rDec.size());
+        //     }
+        // }
+        // minRem *= float(rand()) / float(RAND_MAX);
+        myCharge[myOrder[i]] += minRem;
+        remain[myLayer.cells[myOrder[i]].wireNums[0]] -= minRem;
+        remain[myLayer.cells[myOrder[i]].wireNums[1] + vDim - 1] -= minRem;
+        remain[myLayer.cells[myOrder[i]].wireNums[2] + vDim + lDim - 2] -= minRem;
     }
     vector <vector <float>> toReturn;
     toReturn.push_back(myCharge);
     toReturn.push_back(remain);
     return toReturn;
+}
+
+
+
+
+
+/* This method triese to just invert the matrix, sort of like wirecell */
+vector <float> solveTrue(vector <float> mySig, vector <vector <int>> geoMat) {
+	cout << geoMat.size();
+	mat geo(geoMat.size(), geoMat[0].size());
+	vec sig(mySig.size());
+	for (int i = 0; i < (int)geoMat.size(); i++) {
+		for (int j = 0; j < (int)geoMat[i].size(); j++) {
+			geo(i, j) = geoMat[i][j];
+		}
+	}
+	for (int i = 0; i < (int)mySig.size(); i++) {
+		sig[i] = mySig[i];
+	}
+	vec trueSig = solve(geo, sig);
+	vector <float> trueSignal;
+	for (int i = 0; i < (int)geoMat[0].size(); i++) {
+		trueSignal.push_back(trueSig[i]);
+	}
+	return trueSignal;
+}
+
+float computeCost(vector <vector <float>> trial, vector <float> mySig, vector<vector <int>> geoMat, wireLayer myLayer) {
+    float myCost = 0.;
+	//cout << "trying compute Cost\n";
+    for (int i = 0; i < (int)mySig.size(); i++) {
+        if (mySig[i] == 0.) {
+            mySig[i] += 0.0001;
+        }
+        myCost += pow(trial[1][i],2)/mySig[i]; //1000 prefactor works nicely
+        // myCost += pow(trial[1][i], 2);
+    }
+	//out << "computed the chi-squared\n";
+
+	// for (int i = 0; i < (int)myLayer.cells.size(); i++) {
+	// 	for (int j = i+1; j < (int)myLayer.cells.size(); j++) {
+    //         // for now just use the average values of the vertices
+    //         float x1 = 0.;
+    //         float x2 = 0.;
+    //         float y1 = 0.;
+    //         float y2 = 0.;
+    //         int s1 = myLayer.cells[i].vertices.size();
+    //         int s2 = myLayer.cells[j].vertices.size();
+    //         for (int k = 0; k < s1; k++) {
+    //             x1 += myLayer.cells[i].vertices[k].x / float(s1);
+    //             y1 += myLayer.cells[i].vertices[k].y / float(s1);
+    //         }
+    //         for (int k = 0; k < s2; k++) {
+    //             x2 += myLayer.cells[j].vertices[k].x / float(s2);
+    //             y2 += myLayer.cells[j].vertices[k].y / float(s2);
+    //         }
+	// 		float xDiff = x1 - x2;
+	// 		float yDiff = y1 - y2;
+	// 		myCost +=  0.001 * trial[0][i] * trial[0][j] * (pow(xDiff,2) + pow(yDiff, 2));
+	// 	}
+	// }
+	// cout << "computed packing component\n";
+
+
+    return myCost;
+}
+
+vector <float> solveCharge(vector <float> mySig, vector <vector <int>> geoMat, wireLayer myLayer) {
+    int tryCount = 0;
+    float minCost = numeric_limits<float>::infinity();
+    vector <float> bestDistrib ((int)geoMat[0].size(), -1.);
+    while (tryCount < 1000) {
+		vector <vector <float>> myTrial = randChargeDistrib(mySig, geoMat, myLayer);
+        float trialCost = computeCost(myTrial, mySig, geoMat, myLayer);
+        if (trialCost < minCost) {
+            minCost = trialCost;
+            bestDistrib = myTrial[0];
+            tryCount = 0;
+        }
+        tryCount++;
+    }
+    return bestDistrib;
 }

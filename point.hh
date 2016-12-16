@@ -76,7 +76,7 @@ public:
 		z = newZ;
 	}
 	Point scalarMult(float f) {
-		return Point(x * f, y * f, z*f);
+		return Point(x * f, y * f, z * f);
 	}
 };
 
