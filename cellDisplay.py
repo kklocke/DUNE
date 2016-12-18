@@ -41,15 +41,17 @@ lineCount = 0
 x = []
 y = []
 for line in f:
-    if (lineCount == 0):
+    if (lineCount % 2 == 0):
         for elem in line.strip().split():
             x.append(float(elem))
     else:
         for elem in line.strip().split():
             y.append(float(elem))
+        plt.plot(x, y, marker='D', color='green')
+        x = []
+        y = []
     lineCount += 1
 f.close()
-plt.plot(x, y)
 
 f = open('cellTest_wires.txt')
 

@@ -271,7 +271,7 @@ public:
         	v.push_back(tempV);
         	tempV.clear();
         	for (int j = 0; j < lSize - 1; j++) {
-        		if (hit[vSize + j] == 0) {
+        		if (hit[vSize + j - 1] == 0) {
         			continue;
         		}
         		vector <vector <Point>> l;
@@ -285,7 +285,7 @@ public:
         		l.push_back(tempL);
         		tempL.clear();
         		for (int k = 0; k < rSize - 1; k++) {
-        			if (hit[vSize + lSize + k] == 0) {
+        			if (hit[vSize + lSize + k - 2] == 0) {
         				continue;
         			}
         			vector <vector <Point>> r;
@@ -349,10 +349,12 @@ public:
         // go in short intervals?
         // break it up and find which cells I go through
         map <vector<int>, int> cellSeen;
-        float stepSize = this->pitch / 5.;
-        int numSteps = int(p.length / stepSize);
+        float stepSize = this->pitch / 10.;
+        int numSteps = abs(int(p.length / stepSize));
         Point currentPt = p.vertex;
         Point step = p.path2vec().scalarMult(stepSize / p.length);
+        cout << "STEP LENGTH: " << stepSize << endl;
+        cout << "STEP NUMS: " << numSteps << endl;
         for (int i = 0; i <= numSteps; i++) {
             if (i == numSteps) {
                 currentPt = p.vertex + p.path2vec();
@@ -574,7 +576,7 @@ vector <float> path2true(Path p, wireLayer myLayer) {
     // go in short intervals?
     // break it up and find which cells I go through
     map <vector<int>, int> cellSeen;
-    float stepSize = myLayer.pitch / 5.;
+    float stepSize = myLayer.pitch / 10.;
     int numSteps = int(p.length / stepSize);
     Point currentPt = p.vertex;
     Point step = p.path2vec().scalarMult(stepSize / p.length);
@@ -772,6 +774,85 @@ vector <float> solveCharge(vector <float> mySig, vector <vector <int>> geoMat, w
         if (trialCost < minCost) {
             minCost = trialCost;
             bestDistrib = myTrial[0];
+            tryCount = 0;
+        }
+        tryCount++;
+    }
+    return bestDistrib;
+}
+
+vector <vector <vector <float>>> randChargeDistrib_multi(vector <vector <float>> allSigs, vector <vector <vector <int>>> allGeoMats, vector <wireLayer> allLayers) {
+    vector <vector <vector <float>>> allDistribs;
+    for (int i = 0; i < (int)allSigs.size(); i++) {
+        allDistribs.push_back(randChargeDistrib(allSigs[i], allGeoMats[i], allLayers[i]));
+    }
+    return allDistribs;
+}
+
+float computeCostMulti(vector <vector <vector <float>>> allTrials, vector <vector <float>> allSigs, vector <vector <vector <int>>> allGeoMats, vector <wireLayer> allLayers) {
+    float myCost = 0.;
+    if (allTrials.empty()) {
+        return myCost;
+    }
+    for (int i = 0; i < (int)allTrials.size(); i++) {
+        myCost += computeCost(allTrials[i], allSigs[i], allGeoMats[i], allLayers[i]);
+    }
+
+    for (int i = 0; i < (int)allTrials.size() - 1; i++) {
+        if (allLayers[i].cells.empty()) {
+            continue;
+        }
+        for (int j = i+1; j < (int)allTrials.size(); j++) {
+            // Do the spacial computation between time slices
+            if (allLayers[j].cells.empty()) {
+                continue;
+            }
+            for (int a = 0; a < (int)allLayers[i].cells.size(); a++) {
+                if (allLayers[i].cells[a].vertices.empty()) {
+                    continue;
+                }
+                for (int b = 0; b < (int)allLayers[j].cells.size(); b++) {
+                    if (allLayers[j].cells[b].vertices.empty()) {
+                        continue;
+                    }
+                    float x1 = 0.;
+                    float x2 = 0.;
+                    float y1 = 0.;
+                    float y2 = 0.;
+                    int s1 = (int)allLayers[i].cells[a].vertices.size();
+                    int s2 = (int)allLayers[j].cells[b].vertices.size();
+                    for (int k = 0; k < s1; k++) {
+                        x1 += allLayers[i].cells[a].vertices[k].x / float(s1);
+                        y1 += allLayers[i].cells[a].vertices[k].y / float(s1);
+                    }
+                    for (int k = 0; k < s2; k++) {
+                        x2 += allLayers[j].cells[b].vertices[k].x / float(s2);
+                        y2 += allLayers[j].cells[b].vertices[k].y / float(s2);
+                    }
+                    float xDiff = x1 - x2;
+                    float yDiff = y1 - y2;
+                    myCost += 0.001 * allTrials[i][0][a] * allTrials[j][0][b] * (pow(xDiff, 2) + pow(yDiff, 2));
+                }
+            }
+        }
+    }
+    return myCost;
+}
+
+vector <vector <float>> solveChargeMulti(vector <vector <float>> allSigs, vector <vector <vector <int>>> allGeoMats, vector <wireLayer> allLayers)
+{
+    int tryCount = 0;
+    float minCost = numeric_limits<float>::infinity();
+    vector <vector <float>> bestDistrib;
+    while (tryCount < 1000) {
+        vector <vector <vector <float>>> allTrials = randChargeDistrib_multi(allSigs, allGeoMats, allLayers);
+        float trialCost = computeCostMulti(allTrials, allSigs, allGeoMats, allLayers);
+        if (trialCost < minCost) {
+            minCost = trialCost;
+            bestDistrib.clear();
+            for (int i = 0; i < (int)allTrials.size(); i++) {
+                bestDistrib.push_back(allTrials[i][0]);
+            }
             tryCount = 0;
         }
         tryCount++;
