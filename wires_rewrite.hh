@@ -755,7 +755,7 @@ float computeCost(vector <vector <float>> trial, vector <float> mySig, vector<ve
     //         }
 	// 		float xDiff = x1 - x2;
 	// 		float yDiff = y1 - y2;
-	// 		myCost +=  0.001 * trial[0][i] * trial[0][j] * (pow(xDiff,2) + pow(yDiff, 2));
+	// 		myCost -=  trial[0][i] * trial[0][j] / (pow(xDiff,2) + pow(yDiff, 2));
 	// 	}
 	// }
 	// cout << "computed packing component\n";
@@ -858,4 +858,86 @@ vector <vector <float>> solveChargeMulti(vector <vector <float>> allSigs, vector
         tryCount++;
     }
     return bestDistrib;
+}
+
+
+
+
+
+vector <vector <float>> mutateCharge(vector <vector <float>> myTrial, vector <vector <int>> geoMat) {
+    vector <vector <float>> mutated = myTrial;
+    for (int i = 0; i < (int) myTrial[0].size(); i++) {
+        float myRand = float(rand()) / float (RAND_MAX);
+        if (myRand < 0.1) {
+            float randDir = float(rand()) / float (RAND_MAX);
+            int change = 10;
+            if (randDir < 0.5) {
+                change = -10;
+            }
+            mutated[0][i] += change;
+            for (int j = 0; j < (int) geoMat.size(); j++) {
+                if (geoMat[j][i] == 1) {
+                    mutated[1][j] += change;
+                }
+            }
+        }
+    }
+    return mutated;
+}
+
+
+/*
+ * solveCharge_genetic: tries to find the best charge distribution via a genetic
+ * algorithm approach. Seeds the population with 200 random distributions. Then
+ * takes the top 40. Each iteration mutates with some probability and then re-evaluates.
+ * After a fixed number of generations, the top scoring disribution is returned
+ */
+vector <float> solveCharge_genetic(vector <float> mySig, vector <vector <int>> geoMat, wireLayer myLayer) {
+    int genCount = 0;
+    map <vector <vector <float>> , float> genePool;
+    for (int i = 0; i < 1000; i++) {
+        vector <vector <float>> temp = randChargeDistrib(mySig, geoMat, myLayer);
+        genePool[temp] = computeCost(temp, mySig, geoMat, myLayer);
+    }
+
+    vector<pair<vector<vector<float>>, float>> allPairs;
+    for (auto i = genePool.begin(); i != genePool.end(); i++) {
+        allPairs.push_back(*i);
+    }
+    sort(allPairs.begin(), allPairs.end(), [=](const pair<vector<vector<float>>, float>& a, const pair<vector <vector <float>>, float>& b) {
+        return a.second < b.second;
+    });
+    genePool.clear();
+    for (int i = 0; i < 40; i++) {
+        genePool.insert(allPairs[i]);
+    }
+
+    while (genCount < 200) {
+        vector<pair<vector<vector<float>>, float>> allPairs;
+        for (auto i = genePool.begin(); i != genePool.end(); i++) {
+            allPairs.push_back(*i);
+            for (int j = 0; j < 5; j++) {
+                vector<vector <float>> tempMutated = mutateCharge(i->first, geoMat);
+                float myCost = computeCost(tempMutated, mySig, geoMat, myLayer);
+                pair<vector <vector <float>>, float> tempPair = make_pair(tempMutated, myCost);
+                allPairs.push_back(tempPair);
+            }
+        }
+        sort(allPairs.begin(), allPairs.end(), [=](const pair<vector<vector<float>>, float>& a, const pair<vector <vector <float>>, float>& b) {
+            return a.second < b.second;
+        });
+        genePool.clear();
+        for (int i = 0; i < 40; i++) {
+            genePool.insert(allPairs[i]);
+        }
+        genCount++;
+    }
+    allPairs.clear();
+    for (auto i = genePool.begin(); i != genePool.end(); i++) {
+        allPairs.push_back(*i);
+    }
+    sort(allPairs.begin(), allPairs.end(), [=](const pair<vector<vector<float>>, float>& a, const pair<vector <vector <float>>, float>& b) {
+        return a.second < b.second;
+    });
+    return get<0>(allPairs[0])[0];
 }
