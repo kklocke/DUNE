@@ -736,28 +736,28 @@ float computeCost(vector <vector <float>> trial, vector <float> mySig, vector<ve
     }
 	//out << "computed the chi-squared\n";
 
-	// for (int i = 0; i < (int)myLayer.cells.size(); i++) {
-	// 	for (int j = i+1; j < (int)myLayer.cells.size(); j++) {
-    //         // for now just use the average values of the vertices
-    //         float x1 = 0.;
-    //         float x2 = 0.;
-    //         float y1 = 0.;
-    //         float y2 = 0.;
-    //         int s1 = myLayer.cells[i].vertices.size();
-    //         int s2 = myLayer.cells[j].vertices.size();
-    //         for (int k = 0; k < s1; k++) {
-    //             x1 += myLayer.cells[i].vertices[k].x / float(s1);
-    //             y1 += myLayer.cells[i].vertices[k].y / float(s1);
-    //         }
-    //         for (int k = 0; k < s2; k++) {
-    //             x2 += myLayer.cells[j].vertices[k].x / float(s2);
-    //             y2 += myLayer.cells[j].vertices[k].y / float(s2);
-    //         }
-	// 		float xDiff = x1 - x2;
-	// 		float yDiff = y1 - y2;
-	// 		myCost -=  trial[0][i] * trial[0][j] / (pow(xDiff,2) + pow(yDiff, 2));
-	// 	}
-	// }
+	for (int i = 0; i < (int)myLayer.cells.size(); i++) {
+		for (int j = i+1; j < (int)myLayer.cells.size(); j++) {
+            // for now just use the average values of the vertices
+            float x1 = 0.;
+            float x2 = 0.;
+            float y1 = 0.;
+            float y2 = 0.;
+            int s1 = myLayer.cells[i].vertices.size();
+            int s2 = myLayer.cells[j].vertices.size();
+            for (int k = 0; k < s1; k++) {
+                x1 += myLayer.cells[i].vertices[k].x / float(s1);
+                y1 += myLayer.cells[i].vertices[k].y / float(s1);
+            }
+            for (int k = 0; k < s2; k++) {
+                x2 += myLayer.cells[j].vertices[k].x / float(s2);
+                y2 += myLayer.cells[j].vertices[k].y / float(s2);
+            }
+			float xDiff = x1 - x2;
+			float yDiff = y1 - y2;
+			myCost -=  0.1 * trial[0][i] * trial[0][j] / (pow(xDiff,2) + pow(yDiff, 2));
+		}
+	}
 	// cout << "computed packing component\n";
 
 
@@ -831,7 +831,7 @@ float computeCostMulti(vector <vector <vector <float>>> allTrials, vector <vecto
                     }
                     float xDiff = x1 - x2;
                     float yDiff = y1 - y2;
-                    myCost += 0.001 * allTrials[i][0][a] * allTrials[j][0][b] * (pow(xDiff, 2) + pow(yDiff, 2));
+                    myCost -= 0.1 * allTrials[i][0][a] * allTrials[j][0][b] / (pow(xDiff, 2) + pow(yDiff, 2));
                 }
             }
         }
@@ -894,6 +894,37 @@ vector <vector <vector <float>>> mutateChargeMulti(vector <vector <vector <float
 }
 
 
+vector <vector <vector <float>>> crossoverCharge(vector <float> mySig, vector <vector <float>> t1, vector <vector <float>> t2, vector <vector <int>> geoMat) {
+    int startPosn = rand() % t1[0].size();
+    int endPosn = (rand() % (t1[0].size() - startPosn)) + startPosn;
+    for (int i = startPosn; i <= endPosn; i++) {
+        float temp = t1[0][i];
+        t1[0][i] = t2[0][i];
+        t2[0][i] = temp;
+    }
+    vector <float> r1 = mySig;
+    vector <float> r2 = mySig;
+    for (int i = 0; i < (int)mySig.size(); i++) {
+        for (int j = 0; j < (int)t1[0].size(); j++) {
+            if (geoMat[i][j] == 1) {
+                r1[i] -= t1[0][j];
+                r2[i] -= t2[0][j];
+            }
+        }
+    }
+    t1[1] = r1;
+    t2[1] = r2;
+    vector <vector <vector <float>>> toReturn;
+    toReturn.push_back(t1);
+    toReturn.push_back(t2);
+    return toReturn;
+}
+
+
+
+
+
+
 /*
  * solveCharge_genetic: tries to find the best charge distribution via a genetic
  * algorithm approach. Seeds the population with 200 random distributions. Then
@@ -929,6 +960,17 @@ vector <float> solveCharge_genetic(vector <float> mySig, vector <vector <int>> g
                 float myCost = computeCost(tempMutated, mySig, geoMat, myLayer);
                 pair<vector <vector <float>>, float> tempPair = make_pair(tempMutated, myCost);
                 allPairs.push_back(tempPair);
+                map<vector<vector<float>>, float>::iterator k = genePool.begin();
+                for (int a = 0; a < (int)(rand() % genePool.size()); a++) {
+                    k++;
+                }
+                vector <vector <vector <float>>> tempCrossed = crossoverCharge(mySig, i->first, k->first, geoMat);
+                float c1 = computeCost(tempCrossed[0], mySig, geoMat, myLayer);
+                float c2 = computeCost(tempCrossed[1], mySig, geoMat, myLayer);
+                pair<vector <vector <float>>, float> p1 = make_pair(tempCrossed[0], c1);
+                pair<vector <vector <float>>, float> p2 = make_pair(tempCrossed[1], c2);
+                allPairs.push_back(p1);
+                allPairs.push_back(p2);
             }
         }
         sort(allPairs.begin(), allPairs.end(), [=](const pair<vector<vector<float>>, float>& a, const pair<vector <vector <float>>, float>& b) {
@@ -1006,4 +1048,22 @@ vector <vector <float>> solveChargeMulti_genetic(vector <vector <float>> allSigs
         toReturn.push_back(bestTrial[i][0]);
     }
     return toReturn;
+}
+
+float sumSqrDiff(vector <float> a, vector <float> b) {
+    assert (a.size() == b.size());
+    float mySum = 0.;
+    for (int i = 0; i < (int)a.size(); i++) {
+        mySum += pow(a[i] - b[i], 2);
+    }
+    return mySum / float(a.size());
+}
+
+float sumSqrDiff(vector <vector <float>> a, vector <vector <float>> b) {
+    assert(a.size() == b.size());
+    float mySum = 0.;
+    for (int i = 0; i < (int)a.size(); i++) {
+        mySum += sumSqrDiff(a[i], b[i]);
+    }
+    return mySum / float(a.size());
 }
