@@ -871,7 +871,7 @@ vector <vector <float>> mutateCharge(vector <vector <float>> myTrial, vector <ve
         if (myRand < 0.1) {
             float randDir = float(rand()) / float (RAND_MAX);
             int change = 10;
-            if (randDir < 0.5) {
+            if ((randDir < 0.5) && (mutated[0][i] >= 10)) {
                 change = -10;
             }
             mutated[0][i] += change;
@@ -881,6 +881,14 @@ vector <vector <float>> mutateCharge(vector <vector <float>> myTrial, vector <ve
                 }
             }
         }
+    }
+    return mutated;
+}
+
+vector <vector <vector <float>>> mutateChargeMulti(vector <vector <vector <float>>> myTrial, vector <vector <vector <int>>> allGeoMats) {
+    vector <vector <vector <float>>> mutated;
+    for (int i = 0; i < (int)myTrial.size(); i++) {
+        mutated.push_back(mutateCharge(myTrial[i], allGeoMats[i]));
     }
     return mutated;
 }
@@ -940,4 +948,62 @@ vector <float> solveCharge_genetic(vector <float> mySig, vector <vector <int>> g
         return a.second < b.second;
     });
     return get<0>(allPairs[0])[0];
+}
+
+vector <vector <float>> solveChargeMulti_genetic(vector <vector <float>> allSigs, vector <vector <vector <int>>> allGeoMats, vector <wireLayer> allLayers) {
+    int genCount = 0;
+    map <vector <vector <vector <float>>>, float> genePool;
+    for (int i = 0; i < 1000; i++) {
+        if (i % 50 == 0) {
+            cout << "Seeding: " << i << endl;
+        }
+        vector <vector <vector <float>>> temp = randChargeDistrib_multi(allSigs, allGeoMats, allLayers);
+        genePool[temp] = computeCostMulti(temp, allSigs, allGeoMats, allLayers);
+    }
+    vector <pair<vector <vector <vector <float>>>, float>> allPairs;
+    for (auto i = genePool.begin(); i != genePool.end(); i++) {
+        allPairs.push_back(*i);
+    }
+    sort(allPairs.begin(), allPairs.end(), [=](const pair<vector <vector <vector <float>>>, float>&a, const pair <vector <vector <vector <float>>>, float> &b) {
+        return a.second < b.second;
+    });
+    genePool.clear();
+    for (int i = 0; i < 40; i++) {
+        genePool.insert(allPairs[i]);
+    }
+
+    while (genCount < 10) {
+        cout << "Generation: " << genCount << endl;
+        vector<pair<vector<vector <vector <float>>>, float>> allPairs;
+        for (auto i = genePool.begin(); i != genePool.end(); i++) {
+            allPairs.push_back(*i);
+            for (int j = 0; j < 5; j++) {
+                vector<vector<vector <float>>> tempMutated = mutateChargeMulti(i->first, allGeoMats);
+                float myCost = computeCostMulti(tempMutated, allSigs, allGeoMats, allLayers);
+                pair<vector <vector <vector <float>>>, float> tempPair = make_pair(tempMutated, myCost);
+                allPairs.push_back(tempPair);
+            }
+        }
+        sort(allPairs.begin(), allPairs.end(), [=](const pair<vector <vector<vector<float>>>, float>& a, const pair<vector <vector <vector <float>>>, float>& b) {
+            return a.second < b.second;
+        });
+        genePool.clear();
+        for (int i = 0; i < 40; i++) {
+            genePool.insert(allPairs[i]);
+        }
+        genCount++;
+    }
+    allPairs.clear();
+    for (auto i = genePool.begin(); i != genePool.end(); i++) {
+        allPairs.push_back(*i);
+    }
+    sort(allPairs.begin(), allPairs.end(), [=](const pair<vector <vector<vector<float>>>, float>& a, const pair<vector <vector <vector <float>>>, float>& b) {
+        return a.second < b.second;
+    });
+    vector <vector <vector <float>>> bestTrial = get<0>(allPairs[0]);
+    vector <vector <float>> toReturn;
+    for (int i = 0; i < (int)bestTrial.size(); i++) {
+        toReturn.push_back(bestTrial[i][0]);
+    }
+    return toReturn;
 }
