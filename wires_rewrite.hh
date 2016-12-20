@@ -724,6 +724,14 @@ vector <float> solveTrue(vector <float> mySig, vector <vector <int>> geoMat) {
 	return trueSignal;
 }
 
+vector <vector <float>> solveTrue_multi(vector <vector <float>> allSigs, vector <vector <vector <int>>> allGeoMats) {
+    vector <vector <float>> toReturn;
+    for (int i = 0; i < (int)allSigs.size(); i++) {
+        toReturn.push_back(solveTrue(allSigs[i], allGeoMats[i]));
+    }
+    return toReturn;
+}
+
 float computeCost(vector <vector <float>> trial, vector <float> mySig, vector<vector <int>> geoMat, wireLayer myLayer) {
     float myCost = 0.;
 	//cout << "trying compute Cost\n";
@@ -842,8 +850,14 @@ float computeCostMulti(vector <vector <vector <float>>> allTrials, vector <vecto
 vector <vector <float>> solveChargeMulti(vector <vector <float>> allSigs, vector <vector <vector <int>>> allGeoMats, vector <wireLayer> allLayers)
 {
     int tryCount = 0;
-    float minCost = numeric_limits<float>::infinity();
+    // float minCost = numeric_limits<float>::infinity();
+    // vector <vector <float>> bestDistrib;
+    vector <vector <vector <float>>> initDistrib = randChargeDistrib_multi(allSigs, allGeoMats, allLayers);
     vector <vector <float>> bestDistrib;
+    for (int i = 0; i < (int)initDistrib.size(); i++) {
+        bestDistrib.push_back(initDistrib[i][0]);
+    }
+    float minCost = computeCostMulti(initDistrib, allSigs, allGeoMats, allLayers);
     while (tryCount < 1000) {
         vector <vector <vector <float>>> allTrials = randChargeDistrib_multi(allSigs, allGeoMats, allLayers);
         float trialCost = computeCostMulti(allTrials, allSigs, allGeoMats, allLayers);

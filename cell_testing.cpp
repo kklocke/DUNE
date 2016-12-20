@@ -9,7 +9,7 @@ using namespace std;
 int main () {
     srand(time(NULL));
 
-    int dims [3] = {200, 200, 200};
+    int dims [3] = {350, 350, 350};
 	NaiveEvent myEvent = randEvent(dims);
 	// print vertex
 	cout << "Vertex: " << myEvent.vertex.x << "\t" << myEvent.vertex.y << "\t" << myEvent.vertex.z << endl;
@@ -23,8 +23,8 @@ int main () {
 	cout << "\tPhi: " << myEvent.path2.phi << endl;
 	// print path1
 	// print path2
-	wireArray test = wireArray(3., 54.3, 200., 200., 0.);
-	wireLayer testLayer = wireLayer(200., 200., 0., 3.);
+	wireArray test = wireArray(3., 54.3, 350., 350., 0.);
+	wireLayer testLayer = wireLayer(350., 350., 0., 3.);
 	Point endPath = myEvent.vertex + myEvent.path1.path2vec();
 	cout << "My end path: ";
 	endPath.printPt();
@@ -133,7 +133,7 @@ int main () {
     ////////////////////////////////////////////////////////////////////////////
     //                      Path Partitioned Version                          //
     ////////////////////////////////////////////////////////////////////////////
-    vector <vector <Path>> myPartEvent = myEvent.partitionEvent(20, 200);
+    vector <vector <Path>> myPartEvent = myEvent.partitionEvent(15, 350);
     for (int i = 0; i < (int)myPartEvent.size(); i++) {
         for (int j = 0; j < (int)myPartEvent[i].size(); j++) {
             cout << "Partitioned Path part " << j << endl;
@@ -212,30 +212,50 @@ int main () {
     pathFile.close();
     wiresFile.close();
 
-    // vector <vector <float>> solvedCharges = solveChargeMulti(allSigs, allGeoMats, allLayers);
-    vector <vector <float>> solvedCharges = solveChargeMulti_genetic(allSigs, allGeoMats, allLayers);
+    cout << "Running solve charge genetic" << endl;
+    vector <vector <float>> solvedCharges_genetic = solveChargeMulti_genetic(allSigs, allGeoMats, allLayers);
+    cout << "Running solve charge multi" << endl;
+    vector <vector <float>> solvedCharges_monte = solveChargeMulti(allSigs, allGeoMats, allLayers);
+    cout << "Runnin solve true multi" << endl;
+    vector <vector <float>> solveTrue_matrix = solveTrue_multi(allSigs, allGeoMats);
 
-    cout << "SOLVED CHARGES MULTI: " << endl;
-    for (int i = 0; i < (int)solvedCharges.size(); i++) {
-        cout << "PARTITION: " << i << endl;
-        for (int j = 0; j < (int)solvedCharges[i].size(); j++) {
-            cout << solvedCharges[i][j] << " ";
-        }
-        cout << "\n";
-    }
+
+
+
+    // cout << "SOLVED CHARGES MULTI: " << endl;
+    // for (int i = 0; i < (int)solvedCharges.size(); i++) {
+    //     cout << "PARTITION: " << i << endl;
+    //     for (int j = 0; j < (int)solvedCharges[i].size(); j++) {
+    //         cout << solvedCharges[i][j] << " ";
+    //     }
+    //     cout << "\n";
+    // }
 
     ofstream cellFile;
     cellFile.open("cellTest_cells.txt");
+    cout << "Layer 0 sizes: \n";
+    cout << allActual.size() << "\t" << solveTrue_matrix.size() << "\t" << solvedCharges_genetic.size() << "\t" << solvedCharges_monte.size() << endl;
     for (int i = 0; i < (int)allLayers.size(); i++) {
+        cout << "Layer 1 sizes:\n";
+        cout << allActual[i].size() << "\t" << solveTrue_matrix[i].size() << "\t" << solvedCharges_genetic[i].size() << "\t" << solvedCharges_monte[i].size() << endl;
         for (int j = 0; j < (int)allLayers[i].cells.size(); j++) {
             for (int k = 0; k < (int)allLayers[i].cells[j].vertices.size(); k++) {
                 cellFile << allLayers[i].cells[j].vertices[k].x << " " << allLayers[i].cells[j].vertices[k].y << " ";
             }
             cellFile << "\n";
-            cellFile << solvedCharges[i][j] << " " << allActual[i][j] << "\n";
+            cellFile << allActual[i][j] << " " <<  solveTrue_matrix[i][j] << " " << solvedCharges_genetic[i][j] << " " << solvedCharges_monte[i][j] <<  "\n";
         }
     }
     cellFile.close();
+
+
+    ofstream scoreFile;
+    scoreFile.open("cellTest_scores.txt");
+    scoreFile << sumSqrDiff(allActual, allActual) << " ";
+    scoreFile << sumSqrDiff(solveTrue_matrix, allActual) << " ";
+    scoreFile << sumSqrDiff(solvedCharges_genetic, allActual) << " ";
+    scoreFile << sumSqrDiff(solvedCharges_monte, allActual) << "\n";
+    scoreFile.close();
 
     return 0;
 }
