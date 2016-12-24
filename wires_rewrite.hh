@@ -705,7 +705,6 @@ vector <vector <float>> randChargeDistrib(vector <float> mySig, vector <vector <
 
 /* This method triese to just invert the matrix, sort of like wirecell */
 vector <float> solveTrue(vector <float> mySig, vector <vector <int>> geoMat) {
-	cout << geoMat.size();
 	mat geo(geoMat.size(), geoMat[0].size());
 	vec sig(mySig.size());
 	for (int i = 0; i < (int)geoMat.size(); i++) {
@@ -768,7 +767,6 @@ float computeCost(vector <vector <float>> trial, vector <float> mySig, vector<ve
 	}
 	// cout << "computed packing component\n";
 
-
     return myCost;
 }
 
@@ -786,6 +784,7 @@ vector <float> solveCharge(vector <float> mySig, vector <vector <int>> geoMat, w
         }
         tryCount++;
     }
+    // cout << "Best solve charge cost: " << minCost << endl;
     return bestDistrib;
 }
 
@@ -839,7 +838,9 @@ float computeCostMulti(vector <vector <vector <float>>> allTrials, vector <vecto
                     }
                     float xDiff = x1 - x2;
                     float yDiff = y1 - y2;
-                    myCost -= 0.1 * allTrials[i][0][a] * allTrials[j][0][b] / (pow(xDiff, 2) + pow(yDiff, 2));
+                    if ((xDiff != 0.) || (yDiff != 0.)) {
+                        myCost -= 0.1 * allTrials[i][0][a] * allTrials[j][0][b] / (pow(xDiff, 2) + pow(yDiff, 2));
+                    }
                 }
             }
         }
@@ -850,14 +851,14 @@ float computeCostMulti(vector <vector <vector <float>>> allTrials, vector <vecto
 vector <vector <float>> solveChargeMulti(vector <vector <float>> allSigs, vector <vector <vector <int>>> allGeoMats, vector <wireLayer> allLayers)
 {
     int tryCount = 0;
-    // float minCost = numeric_limits<float>::infinity();
+    float minCost = numeric_limits<float>::infinity();
     // vector <vector <float>> bestDistrib;
     vector <vector <vector <float>>> initDistrib = randChargeDistrib_multi(allSigs, allGeoMats, allLayers);
     vector <vector <float>> bestDistrib;
     for (int i = 0; i < (int)initDistrib.size(); i++) {
         bestDistrib.push_back(initDistrib[i][0]);
     }
-    float minCost = computeCostMulti(initDistrib, allSigs, allGeoMats, allLayers);
+    minCost = computeCostMulti(initDistrib, allSigs, allGeoMats, allLayers);
     while (tryCount < 1000) {
         vector <vector <vector <float>>> allTrials = randChargeDistrib_multi(allSigs, allGeoMats, allLayers);
         float trialCost = computeCostMulti(allTrials, allSigs, allGeoMats, allLayers);
@@ -871,6 +872,7 @@ vector <vector <float>> solveChargeMulti(vector <vector <float>> allSigs, vector
         }
         tryCount++;
     }
+    cout << "Solve charge multi, best soln cost: " << minCost << endl;
     return bestDistrib;
 }
 
@@ -898,6 +900,23 @@ vector <vector <float>> mutateCharge(vector <vector <float>> myTrial, vector <ve
     }
     return mutated;
 }
+
+
+vector <float> charge2remain(vector <float> myCharge, vector <float> mySig, vector <vector <int>> geoMat, wireLayer myLayer) {
+    vector <float> remain = mySig;
+    for (int i = 0; i < (int)myCharge.size(); i++) {
+        if (myCharge[i] == 0) {
+            continue;
+        }
+        for (int j = 0; j < (int) geoMat.size(); j++) {
+            if (geoMat[j][i] == 1) {
+                remain[j] -= myCharge[i];
+            }
+        }
+    }
+    return remain;
+}
+
 
 vector <vector <vector <float>>> mutateChargeMulti(vector <vector <vector <float>>> myTrial, vector <vector <vector <int>>> allGeoMats) {
     vector <vector <vector <float>>> mutated;
@@ -1061,6 +1080,8 @@ vector <vector <float>> solveChargeMulti_genetic(vector <vector <float>> allSigs
     for (int i = 0; i < (int)bestTrial.size(); i++) {
         toReturn.push_back(bestTrial[i][0]);
     }
+    cout << "Solve genetic multi, best soln cost: " << get<1>(allPairs[0]) << endl;
+
     return toReturn;
 }
 
