@@ -13,7 +13,15 @@ public:
     int wireNums [3];
     vector <vector <bool>> touches;
 
-
+    void operator=(const Cell& c) {
+        this->wireNums[0] = c.wireNums[0];
+        this->wireNums[1] = c.wireNums[1];
+        this->wireNums[2] = c.wireNums[2];
+        this->vertices = c.vertices;
+        this->vLines = c.vLines;
+        this->rLines = c.rLines;
+        this->lLines = c.lLines;
+    }
 
     Cell(vector <vector <Point>> v, vector <vector <Point>> l, vector <vector <Point>> r, int w[3]) : vLines(v), lLines(l), rLines(r){
         // assert the size of vLines, lLines, rLines
@@ -121,6 +129,24 @@ public:
         //         }
         //     }
         // }
+    }
+    ~Cell() {}
+
+    bool operator<(const Cell & c) const {
+        if (this->wireNums[0] < c.wireNums[0]) {
+            return true;
+        }
+        else if (this->wireNums[0] == c.wireNums[0]) {
+            if (this->wireNums[1] < c.wireNums[1]) {
+                return true;
+            }
+            else if (this->wireNums[1] == c.wireNums[1]) {
+                if (this->wireNums[2] < c.wireNums[2]) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
     // bool inCell(Point p, int dir) {
     //     // dir = 0 means we want to check

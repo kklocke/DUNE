@@ -1,6 +1,6 @@
 CXXFLAGS = -std=c++11 -Wall -g
 
-all : projection optimization multiOpt
+all : projection optimization multiOpt toy
 
 projection : projection.o
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) -O2 -larmadillo -llapack -lblas
@@ -14,6 +14,9 @@ multiOpt : multi_test.o
 cellTest : cell_testing.o
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) -O2 -larmadillo -llapack -lblas
 
+toy : toy.o
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) -O2 -larmadillo -llapack -lblas
+
 testProj : projection
 	./projection
 	python displayTest.py
@@ -25,6 +28,7 @@ testOpt : optimization
 testMulti : multiOpt
 	./multiOpt
 	python multiOpt_display.py
+
 
 clean :
 	rm -f *.o *~

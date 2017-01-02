@@ -75,6 +75,9 @@ public:
 		y = newY;
 		z = newZ;
 	}
+	Point operator*(const float& f) {
+		return Point(x * f, y * f, z * f);
+	}
 	Point scalarMult(float f) {
 		return Point(x * f, y * f, z * f);
 	}

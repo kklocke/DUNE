@@ -19,6 +19,8 @@ public:
 		this->height = w.height;
 		this->length = w.length;
 		this->z = w.z;
+        this->endPoints.clear();
+        this->startPoints.clear();
 		for (int i = 0; i < (int)w.startPoints.size(); i++) {
 			this->startPoints.push_back(w.startPoints[i]);
 		}
@@ -190,6 +192,25 @@ vector <int> crossings(wireArray myArr, Point p1, Point p2)
 }
 
 
+// I need to check that the indices are in the right order
+vector <int> numCellPerWire(vector <float> mySig, vector <vector <int>> geoMat) {
+    // cout << "Numcell per wire: " << mySig.size() << "\t" << geoMat.size() << "\t" << geoMat[0].size() << endl;
+    if (mySig.empty()) {
+        vector <int> toRet;
+        return toRet;
+    }
+    assert (mySig.size() == geoMat[0].size());
+    vector <int> numCells ((int)geoMat.size(), 0);
+    for (int i = 0; i < (int)geoMat.size(); i++) {
+        for (int j = 0; j < (int)geoMat[i].size(); j++) {
+            if ((mySig[j] > 0) && (geoMat[i][j] == 1)) {
+                numCells[i] += 1;
+            }
+        }
+    }
+    return numCells;
+}
+
 class wireLayer
 {
 public:
@@ -202,10 +223,18 @@ public:
     float z;
     vector <Point> grids;
     vector <Cell> cells; // Now we care about cells not grids, since the grids are meaningless
+    vector <Cell> ambigCells;
+    map<Cell, float> unambig;
     wireLayer(float h, float l, float z, float pitch) : pitch(pitch), length(l), height(h), z(z) {
         vertical = wireArray(pitch, 90., l, h, z);
         lSlant = wireArray(pitch, 54.3, l, h, z);
         rSlant = wireArray(pitch, -54.3, l, h, z);
+    }
+    wireLayer() {
+        pitch = 0.;
+        length = 0.;
+        height = 0.;
+        z = 0.;
     }
     void operator=(const wireLayer &w) {
         this->pitch = w.pitch;
@@ -215,6 +244,9 @@ public:
 		this->vertical = w.vertical;
 		this->lSlant = w.lSlant;
 		this->rSlant = w.rSlant;
+        this->cells = w.cells;
+        this->ambigCells = w.ambigCells;
+        this->unambig = w.unambig;
     }
 
 	vector <vector <int>> allCrossings(Point p1, Point p2) {
@@ -253,6 +285,9 @@ public:
         cout << "vSize: " << vSize << endl;
         cout << "lSize: " << lSize << endl;
         cout << "rSize: " << rSize << endl;
+        cells.clear();
+        unambig.clear();
+        ambigCells.clear();
 
         // generate all of the cells, then construct matrix accordingly
         // cout << "Entering the loop\n";
@@ -341,6 +376,205 @@ public:
         // return transposeMat;
     }
 
+    // pair<vector <vector <int>>, vector <float>> removeUnambig(vector <float> signals, vector <vector <int>> geoMat) {
+    //     vector <float> fake(geoMat[0].size(), 1.);
+    //     vector <int> numCells = numCellPerWire(fake, geoMat);
+    //     vector <float> newSig = signals;
+    //     vector <vector <int>> newGeoMat = geoMat;
+    //     this->ambigCells = this->cells;
+    //
+    //     // cells to remove
+    //     vector <int> cellIndices;
+    //
+    //     for (int i = 0; i < (int)geoMat.size(); i++) {
+    //         if (numCells[i] == 1) {
+    //             int myCellIndex = -1;
+    //             for (int j = 0; j < (int)geoMat[i].size(); j++) {
+    //                 if (geoMat[i][j] == 1) {
+    //                     myCellIndex = j;
+    //                     break;
+    //                 }
+    //             }
+    //             if (myCellIndex == -1) {
+    //                 continue;
+    //             }
+    //             for (int k = 0; k < (int)geoMat.size(); k++) {
+    //                 if (geoMat[k][myCellIndex] == 1) {
+    //                     newSig[k] -= signals[i];
+    //                 }
+    //             }
+    //             cellIndices.push_back(myCellIndex);
+    //             this->unambig[this->cells[myCellIndex]] = signals[i];
+    //         }
+    //     }
+    //     cout << "Cell indices size: " << cellIndices.size() << endl;
+    //     sort(cellIndices.begin(), cellIndices.end());
+    //     for (int i = (int) newGeoMat.size() - 1; i >= 0; i--) {
+    //         if (newSig[i] == 0) {
+    //             newGeoMat.erase(newGeoMat.begin() + i);
+    //             newSig.erase(newSig.begin() + i);
+    //         }
+    //         // else {
+    //         //     for (int j = (int)cellIndices.size() - 1; j >= 0; j--) {
+    //         //         newGeoMat[i].erase(newGeoMat[i].begin() + cellIndices[j]);
+    //         //     }
+    //         // }
+    //     }
+    //
+    //     for (int i = (int)cellIndices.size() - 1; i >= 0; i--) {
+    //         this->ambigCells.erase(this->ambigCells.begin() + cellIndices[i]);
+    //         for (int j = 0; j < (int)newGeoMat.size(); j++) {
+    //             vector <int> temp = newGeoMat[j];
+    //             temp.erase(temp.begin() + cellIndices[i]);
+    //             newGeoMat[j] = temp;
+    //         }
+    //     }
+    //
+    //     pair<vector <vector <int>>, vector <float>> toRet = make_pair(newGeoMat, newSig);
+    //     return toRet;
+    // }
+
+
+    // pair <vector <vector <int>>, vector <float>> removeUnambig(vector <float> signals, vector <vector <int>> geoMat) {
+    //
+    //     vector <vector <int>> newGeoMat = geoMat;
+    //     vector <float> newSig = signals;
+    //     vector <float> fake (geoMat[0].size(), 1.);
+    //     vector <int> numCells = numCellPerWire(fake, geoMat);
+    //
+    //     for (int i = 0; i < (int)numCells.size(); i++) {
+    //         cout << numCells[i] << " ";
+    //     }
+    //     cout << endl;
+    //
+    //     int i = 0;
+    //
+    //     while (i != (int)newGeoMat.size()) {
+    //         // find a wire that has unambiguous cell
+    //         if (numCells[i] == 1) {
+    //             cout << i << " ";
+    //             float myCharge = newSig[i];
+    //             int myCellIndex = -1;
+    //             // identify which cell
+    //             for (int j = 0; j < (int)newGeoMat[i].size(); j++) {
+    //                 if (newGeoMat[i][j] == 1) {
+    //                     myCellIndex = j;
+    //                     break;
+    //                 }
+    //                 // for all the wires it touches, reduce the charge, and then delete that cell from the matrix
+    //                 if (myCellIndex != -1) {
+    //                     // write the cell into the unambig map and then remove from the regular cells vector
+    //                     this->unambig[this->cells[myCellIndex]] = myCharge;
+    //                     this->cells.erase(this->cells.begin() + myCellIndex);
+    //                     for (int k = (int)newGeoMat.size() - 1; k >= 0; k--) {
+    //                         if (newGeoMat[k][myCellIndex] == 1) {
+    //                             // reduce charge
+    //                             newSig[k] -= myCharge;
+    //                         }
+    //                         // remove the cell
+    //                         vector <int> temp = newGeoMat[k];
+    //                         temp.erase(temp.begin() + myCellIndex);
+    //                         newGeoMat[k] = temp;
+    //                         // check if the wire is now empty of charge
+    //                         if (newSig[k] == 0.) {
+    //                             // if so, remove the wire from geomat and signal
+    //                             newGeoMat.erase(newGeoMat.begin() + k);
+    //                             newSig.erase(newSig.begin() + k);
+    //                         }
+    //                     }
+    //                 }
+    //             }
+    //             cout << endl;
+    //         }
+    //
+    //         i++;
+    //     }
+    //     pair <vector <vector <int>>, vector <float>> toRet = make_pair(newGeoMat, newSig);
+    //     return toRet;
+    // }
+
+    bool helpRemoveUnambig(vector <float> *sig, vector <vector <int>> *geoMat, vector <int> *numCells) {
+        int i = 0;
+	    bool toRet = false;
+	    while ((i < (int)(*sig).size()) && (i < (int)(*numCells).size())) {
+	       if (((*numCells)[i] == 0) || ((*sig)[i] == 0)) {
+               toRet = true;
+               (*geoMat).erase((*geoMat).begin() + i);
+               (*sig).erase((*sig).begin() + i);
+               (*numCells).erase((*numCells).begin() + i);
+               // remove this wire entirely
+               break;
+           }
+           if ((*numCells)[i] == 1) {
+               toRet = true;
+               // reduce the charge on the relevant wires and remove this particular wire
+               int cellIndex = -1;
+               for (int j = 0; j < (int)(*geoMat)[i].size(); j++) {
+                   // temp
+                   assert((*geoMat)[i].size() == this->cells.size());
+                   if ((*geoMat)[i][j] == 1){
+                       cellIndex = j;
+                       break;
+                   }
+               }
+               if (cellIndex == -1) {
+                   continue;
+               }
+               float toDec = (*sig)[i];
+               for (int j = 0; j < (int)(*geoMat).size(); j++) {
+                   if ((*geoMat)[j][cellIndex] == 1) {
+                       (*sig)[j] -= toDec;
+                       (*numCells)[j]--;
+                   }
+                   // remove that column
+                   vector <int> temp = (*geoMat)[j];
+                   temp.erase(temp.begin() + cellIndex);
+                   (*geoMat)[j] = temp;
+                   // (*geoMat)[j].erase((*geoMat)[j].begin() + cellIndex);
+               }
+               // remove that cell
+               cout << "This->cells.size() " << this->cells.size() << "\tCell Index: " << cellIndex << endl;
+               Cell c = this->cells[cellIndex];
+               this->unambig[c] = toDec;
+               this->cells.erase(this->cells.begin() + cellIndex);
+               break;
+           }
+           i++;
+       }
+       return toRet;
+   }
+
+
+    pair <vector <vector <int>>, vector <float>> removeUnambig(vector <float> signals, vector <vector <int>> geoMat) {
+        vector <vector <int>> newGeoMat = geoMat;
+        vector <float> newSig = signals;
+        // cout << "Original Size of Sigs: " << signals.size() << endl;
+        // cout << "Original Size of GeoMat: " << geoMat.size() << "\t" << geoMat[0].size() << endl;
+        vector <float> fake (geoMat[0].size(), 1.);
+        vector <int> numCells = numCellPerWire(fake, newGeoMat);
+
+        cout << "Num Cells Vector: ";
+        for (int i = 0; i < (int)numCells.size(); i++) {
+            cout << numCells[i] << " ";
+        }
+        cout << "\n";
+
+        bool hasChanged = true;
+
+        while (hasChanged) {
+            hasChanged = helpRemoveUnambig(&newSig, &newGeoMat, &numCells);
+        }
+
+        // cout << "Final Size of Sigs: " << newSig.size() << endl;
+        // cout << "Final Size of GeoMat: " << newGeoMat.size() << "\t" << newGeoMat[0].size() << endl;
+
+        pair <vector <vector <int>>, vector <float>> toRet = make_pair(newGeoMat, newSig);
+        return toRet;
+    }
+
+
+
+
     vector <float> signalVec(Path p) {
         int vDim = this->vertical.startPoints.size();
         int lDim = this->lSlant.startPoints.size();
@@ -348,13 +582,12 @@ public:
         vector <float> sigVec(vDim + lDim + rDim - 3, 0.);
         // go in short intervals?
         // break it up and find which cells I go through
+
         map <vector<int>, int> cellSeen;
         float stepSize = this->pitch / 10.;
         int numSteps = abs(int(p.length / stepSize));
         Point currentPt = p.vertex;
         Point step = p.path2vec().scalarMult(stepSize / p.length);
-        cout << "STEP LENGTH: " << stepSize << endl;
-        cout << "STEP NUMS: " << numSteps << endl;
         for (int i = 0; i <= numSteps; i++) {
             if (i == numSteps) {
                 currentPt = p.vertex + p.path2vec();
@@ -401,172 +634,109 @@ public:
             sigVec[myNums[1] + vDim - 1] += 10;
             sigVec[myNums[2] + vDim + lDim - 2] += 10;
         }
-        // for (map<vector <int>, int>::iterator j = cellSeen.begin(); j != cellSeen.end(); j++) {
-        //     // build this cell
-        //     vector <int> myNums = j->first;
-        //     int nums[3] = {myNums[0], myNums[1], myNums[2]};
-        //     vector <vector <Point>> v;
-        //     vector <Point> tempV1;
-        //     vector <Point> tempV2;
-        //     tempV1.push_back(this->vertical.startPoints[myNums[0]]);
-        //     tempV1.push_back(this->vertical.endPoints[myNums[0]]);
-        //     tempV2.push_back(this->vertical.startPoints[myNums[0] + 1]);
-        //     tempV2.push_back(this->vertical.endPoints[myNums[0] + 1]);
-        //     v.push_back(tempV1);
-        //     v.push_back(tempV2);
-        //     vector <vector <Point>> l;
-        //     vector <Point> tempL1;
-        //     vector <Point> tempL2;
-        //     tempL1.push_back(this->lSlant.startPoints[myNums[1]]);
-        //     tempL1.push_back(this->lSlant.endPoints[myNums[1]]);
-        //     tempL2.push_back(this->lSlant.startPoints[myNums[1] + 1]);
-        //     tempL2.push_back(this->lSlant.endPoints[myNums[1] + 1]);
-        //     l.push_back(tempL1);
-        //     l.push_back(tempL2);
-        //     vector <vector <Point>> r;
-        //     vector <Point> tempR1;
-        //     vector <Point> tempR2;
-        //     tempR1.push_back(this->rSlant.startPoints[myNums[2]]);
-        //     tempR1.push_back(this->rSlant.endPoints[myNums[2]]);
-        //     tempR2.push_back(this->rSlant.startPoints[myNums[2] + 1]);
-        //     tempR2.push_back(this->rSlant.endPoints[myNums[2] + 1]);
-        //     r.push_back(tempR1);
-        //     r.push_back(tempR2);
-        //     Cell c(v, l , r, nums);
-        //     if (c.touches[0][0]) {
-        //         if (c.touches[0][1]) {
-        //             sigVec[myNums[0]] += 5.;
-        //             sigVec[myNums[0] + 1] += 5.;
-        //         }
-        //         else {
-        //             sigVec[myNums[0]] += 10.;
-        //         }
-        //     }
-        //     else if (c.touches[0][1]) {
-        //         sigVec[myNums[0] + 1] += 10.;
-        //     }
-        //     if (c.touches[1][0]) {
-        //         if (c.touches[1][1]) {
-        //             sigVec[vDim + myNums[1]] += 5.;
-        //             sigVec[vDim + myNums[1] + 1] += 5.;
-        //         }
-        //         else {
-        //             sigVec[vDim + myNums[1]] += 10.;
-        //         }
-        //     }
-        //     else if (c.touches[1][1]) {
-        //         sigVec[vDim + myNums[1] + 1] += 10.;
-        //     }
-        //     if (c.touches[2][0]) {
-        //         if (c.touches[2][1]) {
-        //             sigVec[vDim + lDim + myNums[2]] += 5.;
-        //             sigVec[vDim + lDim + myNums[2] + 1] += 5.;
-        //         }
-        //         else {
-        //             sigVec[vDim + lDim + myNums[2]] += 10.;
-        //         }
-        //     }
-        //     else if (c.touches[2][1]) {
-        //         sigVec[vDim + lDim + myNums[2] + 1] += 10.;
-        //     }
-        // }
+
         return sigVec;
     }
 
-    // vector <float> signalVec(Path p) {
-    // 	int vDim = this->vertical.startPoints.size();
-    // 	int lDim = this->lSlant.startPoints.size();
-    // 	int rDim = this->rSlant.startPoints.size();
-    // 	vector <int> crossV = crossings(this->vertical, p.vertex, (p.vertex + p.path2vec()));
-    // 	vector <int> crossL = crossings(this->lSlant, p.vertex, (p.vertex + p.path2vec()));
-    // 	vector <int> crossR = crossings(this->rSlant, p.vertex, (p.vertex + p.path2vec()));
-    //     // cout << "vDim: " << vDim << endl;
-    //     // cout << "lDim: " << lDim << endl;
-    //     // cout << "rDim: " << rDim << endl;
-    //     // cout << "crossV dim: " << crossV.size() << endl;
-    //     // cout << "crossL dim: " << crossL.size() << endl;
-    //     // cout << "crossR dim: " << crossR.size() << endl;
-    //     vector <float> sigVec(vDim + lDim + rDim - 3, 0.);
-    //     // cout << "test 1" << endl;
-    //
-    //     if (crossV.empty()) {
-    //         // cout << "V EMPTY\n";
-    //         int vPlace = -1;
-    //         for (int i = 0; i < vDim; i++) {
-    //             if (p.vertex.x < this->vertical.startPoints[i].x) {
-    //                 vPlace = i - 1;
-    //             }
-    //         }
-    //         if (vPlace != -1) {
-    //             sigVec[vPlace] += 10;
-    //         }
-    //     }
-    //     else {
-    //         // if (crossV[0] == -1) {
-    //         //     cout << "v neg\n";
-    //         // }
-    //         for (int i = 0; i < (int)crossV.size(); i++) {
-    //     		sigVec[crossV[i]] += 10.;
-    //     	}
-    //         sigVec[crossV[0] - 1] += 10;
-    //         sigVec[crossV[crossV.size() - 1] + 1] += 10;
-    //         // cout << "wrote vert parts" << endl;
-    //     }
-    //
-    //     if (crossL.empty()) {
-    //         // cout << "L EMPTY\n";
-    //         int lPlace = -1;
-    //         for (int i = 0; i < lDim; i++) {
-    //             float predY = this->lSlant.startPoints[i].y + tan(this->lSlant.angle)*(p.vertex.x - this->lSlant.startPoints[i].x);
-    //             if (predY < p.vertex.y) {
-    //                 lPlace = i - 1;
-    //             }
-    //         }
-    //         if (lPlace != -1) {
-    //             sigVec[lPlace + vDim - 1] += 10;
-    //         }
-    //     }
-    //     else {
-    //         // if (crossL[0] == -1) {
-    //         //     cout << "l neg\n";
-    //         // }
-    //         for (int i = 0; i < (int)crossL.size(); i++) {
-    //             sigVec[crossL[i] + vDim - 1] += 10.;
-    //         }
-    //         sigVec[crossL[0] + vDim - 1 - 1] += 10;
-    //         sigVec[crossL[crossL.size() - 1] + vDim - 1 + 1] += 10;
-    //         // cout << "wrote lSlant parts" << endl;
-    //     }
-    //
-    //     if (crossR.empty()) {
-    //         // cout << "R EMPTY\n";
-    //         int rPlace = -1;
-    //         for (int i = 0; i < rDim; i++) {
-    //             float predY = this->rSlant.startPoints[i].y + tan(this->rSlant.angle) * (p.vertex.x - this->rSlant.startPoints[i].x);
-    //             if (predY > p.vertex.y) {
-    //                 rPlace = i - 1;
-    //             }
-    //         }
-    //         if (rPlace != -1) {
-    //             sigVec[rPlace + vDim + lDim - 2] += 10;
-    //         }
-    //     }
-    //     else {
-    //         // if (crossR[0] == -1) {
-    //         //     cout << "r neg\n";
-    //         // }
-    //         for (int i = 0; i < (int)crossR.size(); i++) {
-    //     		sigVec[crossR[i] + vDim + lDim - 2] += 10.;
-    //     	}
-    //         sigVec[crossR[0] + vDim + lDim - 2 - 1] += 10;
-    //         sigVec[crossR[crossR.size() - 1] + vDim + lDim - 2 + 1] += 10;
-    //         // cout << "wrote rSlant parts" << endl;
-    //     }
-    //
-    //     // cout << "all done with sigvec" << endl;
-    // 	return sigVec;
-    // }
+    vector <float> signalVec(vector <Path> myPaths) {
+        int vDim = this->vertical.startPoints.size();
+        int lDim = this->lSlant.startPoints.size();
+        int rDim = this->rSlant.startPoints.size();
+        vector <float> sigVec(vDim + lDim + rDim - 3, 0.);
+        map <vector<int>, int> cellSeen;
+        float stepSize = this->pitch / 10.;
+
+        Path defPath = Path();
+
+        for (int k = 0; k < (int)myPaths.size(); k++) {
+            Path p = myPaths[k];
+            if (p == defPath) {
+                continue;
+            }
+            int numSteps = abs(int(p.length / stepSize));
+            Point currentPt = p.vertex;
+            Point step = p.path2vec().scalarMult(stepSize / p.length);
+            for (int i = 0; i <= numSteps; i++) {
+                if (i == numSteps) {
+                    currentPt = p.vertex + p.path2vec();
+                }
+                // find vertical boundaries
+                int vPlace = -1;
+                int lPlace = -1;
+                int rPlace = -1;
+                for (int j = 0; j < vDim; j++) {
+                    if (this->vertical.startPoints[j].x > currentPt.x) {
+                        vPlace = j - 1;
+                        break;
+                    }
+                }
+                for (int j = 0; j < lDim; j++) {
+                    float slope = tan(this->lSlant.angle * M_PI / 180.);
+                    float predY = this->lSlant.startPoints[j].y + slope * (currentPt.x - this->lSlant.startPoints[j].x);
+                    if (predY < currentPt.y) {
+                        lPlace = j - 1;
+                        break;
+                    }
+                }
+
+                for (int j = 0; j < rDim; j++) {
+                    float slope = tan(this->rSlant.angle * M_PI / 180.);
+                    float predY = this->rSlant.startPoints[j].y + slope * (currentPt.x - this->rSlant.startPoints[j].x);
+                    if (predY > currentPt.y) {
+                        rPlace = j - 1;
+                        break;
+                    }
+                }
+                vector <int> myNums;
+                myNums.push_back(vPlace);
+                myNums.push_back(lPlace);
+                myNums.push_back(rPlace);
+                if (cellSeen.find(myNums) == cellSeen.end()) {
+                    cellSeen[myNums]++;
+                }
+                else {
+                    cellSeen[myNums] = 1;
+                }
+                currentPt += step;
+            }
+        }
+
+        for (map<vector <int>, int>::iterator j = cellSeen.begin(); j != cellSeen.end(); j++) {
+            //add charge on the "wires" associated with the cell,
+            // "wires" indexing has the same index as the bounding lines
+            vector <int> myNums = j->first;
+            int numHits = j->second;
+            sigVec[myNums[0]] += 10 * numHits;
+            sigVec[myNums[1] + vDim - 1] += 10  * numHits;
+            sigVec[myNums[2] + vDim + lDim - 2] += 10  * numHits;
+        }
+        return sigVec;
+    }
 };
+
+
+pair <vector <vector <vector <int>>>, vector <vector <float>>> removeUnambigMulti(vector <vector <float>> allSigs, vector <vector <vector <int>>> allGeoMats, vector <wireLayer> *allLayers) {
+    int numTrials = (int)allSigs.size();
+
+    vector <vector <vector <int>>> newGeoMats(numTrials);
+    vector <vector <float>> newSigs(numTrials);
+
+    for (int i = 0; i < (int)allGeoMats.size(); i++) {
+        if (allSigs[i].size() == 0) {
+            continue;
+        }
+        pair <vector <vector <int>>, vector <float>> myNew = (*allLayers)[i].removeUnambig(allSigs[i], allGeoMats[i]);
+        newGeoMats[i] = get<0>(myNew);
+        newSigs[i] = get<1>(myNew);
+    }
+
+    pair <vector <vector <vector <int>>>, vector <vector <float>>> toRet = make_pair(newGeoMats, newSigs);
+    return toRet;
+}
+
+
+
+
 
 vector <float> path2true(Path p, wireLayer myLayer) {
     int vDim = myLayer.vertical.startPoints.size();
@@ -618,6 +788,7 @@ vector <float> path2true(Path p, wireLayer myLayer) {
         cellSeen[myNums] = 1;
         currentPt += step;
     }
+    cout << "NUM CELLS THAT SHOULD BE ACTIVE: " << cellSeen.size() << endl;
     vector <float> myCharge((int)myLayer.cells.size(), 0.);
     for (int i = 0; i < (int)myLayer.cells.size(); i++) {
         for (map<vector <int>, int>::iterator j = cellSeen.begin(); j != cellSeen.end(); j++) {
@@ -630,22 +801,133 @@ vector <float> path2true(Path p, wireLayer myLayer) {
     return myCharge;
 }
 
-vector <vector <float>> randChargeDistrib(vector <float> mySig, vector <vector <int>> geoMat, wireLayer myLayer) {
-    vector <float> remain = mySig;
-    vector <float> myCharge ((int)geoMat[0].size(), 0.);
+
+vector <float> path2true(vector <Path> allPaths, wireLayer myLayer) {
     int vDim = myLayer.vertical.startPoints.size();
     int lDim = myLayer.lSlant.startPoints.size();
     int rDim = myLayer.rSlant.startPoints.size();
+    vector <float> sigVec(vDim + lDim + rDim - 3, 0.);
+    // go in short intervals?
+    // break it up and find which cells I go through
+    map <vector<int>, int> cellSeen;
+    float stepSize = myLayer.pitch / 10.;
+
+    Path defPath = Path();
+
+    for (int k = 0; k < (int)allPaths.size(); k++) {
+        Path p = allPaths[k];
+        if (p == defPath) {
+            continue;
+        }
+        int numSteps = int(p.length / stepSize);
+        Point currentPt = p.vertex;
+        Point step = p.path2vec().scalarMult(stepSize / p.length);
+        for (int i = 0; i <= numSteps; i++) {
+            if (i == numSteps) {
+                currentPt = p.vertex + p.path2vec();
+            }
+            // find vertical boundaries
+            int vPlace = -1;
+            int lPlace = -1;
+            int rPlace = -1;
+            for (int j = 0; j < vDim; j++) {
+                if (myLayer.vertical.startPoints[j].x > currentPt.x) {
+                    vPlace = j - 1;
+                    break;
+                }
+            }
+            for (int j = 0; j < lDim; j++) {
+                float slope = tan(myLayer.lSlant.angle * M_PI / 180.);
+                float predY = myLayer.lSlant.startPoints[j].y + slope * (currentPt.x - myLayer.lSlant.startPoints[j].x);
+                if (predY < currentPt.y) {
+                    lPlace = j - 1;
+                    break;
+                }
+            }
+
+            for (int j = 0; j < rDim; j++) {
+                float slope = tan(myLayer.rSlant.angle * M_PI / 180.);
+                float predY = myLayer.rSlant.startPoints[j].y + slope * (currentPt.x - myLayer.rSlant.startPoints[j].x);
+                if (predY > currentPt.y) {
+                    rPlace = j - 1;
+                    break;
+                }
+            }
+            vector <int> myNums;
+            myNums.push_back(vPlace);
+            myNums.push_back(lPlace);
+            myNums.push_back(rPlace);
+            if (cellSeen.find(myNums) == cellSeen.end()) {
+                cellSeen[myNums] = 1;
+            }
+            else {
+                cellSeen[myNums]++;
+            }
+            currentPt += step;
+        }
+    }
+    vector <float> myCharge((int)myLayer.cells.size(), 0.);
+    for (int i = 0; i < (int)myLayer.cells.size(); i++) {
+        for (map<vector <int>, int>::iterator j = cellSeen.begin(); j != cellSeen.end(); j++) {
+            vector <int> myNums = j->first;
+            if ((myNums[0] == myLayer.cells[i].wireNums[0]) && (myNums[1] == myLayer.cells[i].wireNums[1]) && (myNums[2] == myLayer.cells[i].wireNums[2])) {
+                myCharge[i] += 10. * j->second;
+            }
+        }
+    }
+    return myCharge;
+}
+
+
+
+
+
+
+
+
+
+
+vector <vector <float>> randChargeDistrib(vector <float> mySig, vector <vector <int>> geoMat, wireLayer myLayer) {
+    vector <float> remain = mySig;
+    if (myLayer.cells.empty() || mySig.empty()) {
+        vector <float> temp1;
+        vector <float> temp2;
+        vector <vector <float>> toRet;
+        toRet.push_back(temp1);
+        toRet.push_back(temp2);
+        return toRet;
+    }
+
+    vector <float> myCharge ((int)geoMat[0].size(), 0.);
+    // int vDim = myLayer.vertical.startPoints.size();
+    // int lDim = myLayer.lSlant.startPoints.size();
+    // int rDim = myLayer.rSlant.startPoints.size();
     vector <int> myOrder((int)myLayer.cells.size(), 0);
     for (int i = 0; i < (int)myOrder.size(); i++) {
         myOrder[i] = i;
     }
     random_shuffle(myOrder.begin(), myOrder.end());
     for (int i = 0; i < (int)myLayer.cells.size(); i++) {
+        vector <int> relevantWires;
+        for (int j = 0; j < (int)geoMat.size(); j++) {
+            if (geoMat[j][myOrder[i]] == 1) {
+                relevantWires.push_back(j);
+            }
+        }
+
+
         float minRem = numeric_limits<float>::infinity();
-        minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[0]]);
-        minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[1] + vDim - 1]);
-        minRem = min(minRem, remain[myLayer.cells[myOrder[i]].wireNums[2] + vDim + lDim - 2]);
+
+        for (int j = 0; j < (int)relevantWires.size(); j++) {
+            minRem = min(minRem, remain[relevantWires[j]]);
+        }
+
+        // float f1 = remain[myLayer.cells[myOrder[i]].wireNums[0]];
+        // float f2 = remain[myLayer.cells[myOrder[i]].wireNums[1] + vDim - 1];
+        // float f3 = remain[myLayer.cells[myOrder[i]].wireNums[2] + vDim + lDim - 2];
+        // minRem = min(minRem, f1);
+        // minRem = min(minRem, f2);
+        // minRem = min(minRem, f3);
         // vector <int> vDec;
         // vector <int> lDec;
         // vector <int> rDec;
@@ -689,13 +971,21 @@ vector <vector <float>> randChargeDistrib(vector <float> mySig, vector <vector <
         // }
         // minRem *= float(rand()) / float(RAND_MAX);
         myCharge[myOrder[i]] += minRem;
-        remain[myLayer.cells[myOrder[i]].wireNums[0]] -= minRem;
-        remain[myLayer.cells[myOrder[i]].wireNums[1] + vDim - 1] -= minRem;
-        remain[myLayer.cells[myOrder[i]].wireNums[2] + vDim + lDim - 2] -= minRem;
+
+        for (int j = 0; j < (int)relevantWires.size(); j++) {
+            remain[relevantWires[j]] -= minRem;
+        }
+
+        // remain[myLayer.cells[myOrder[i]].wireNums[0]] -= minRem;
+        // remain[myLayer.cells[myOrder[i]].wireNums[1] + vDim - 1] -= minRem;
+        // remain[myLayer.cells[myOrder[i]].wireNums[2] + vDim + lDim - 2] -= minRem;
     }
-    vector <vector <float>> toReturn;
-    toReturn.push_back(myCharge);
-    toReturn.push_back(remain);
+    vector <vector <float>> toReturn(2);
+    toReturn[0] = myCharge;
+    toReturn[1] = remain;
+
+    //toReturn.push_back(myCharge);
+    //toReturn.push_back(remain);
     return toReturn;
 }
 
@@ -724,19 +1014,57 @@ vector <float> solveTrue(vector <float> mySig, vector <vector <int>> geoMat) {
 }
 
 vector <vector <float>> solveTrue_multi(vector <vector <float>> allSigs, vector <vector <vector <int>>> allGeoMats) {
-    vector <vector <float>> toReturn;
+    vector <vector <float>> toReturn(allSigs.size());
     for (int i = 0; i < (int)allSigs.size(); i++) {
-        toReturn.push_back(solveTrue(allSigs[i], allGeoMats[i]));
+        if (allSigs[i].size() == 0) {
+            continue;
+        }
+        toReturn[i] = solveTrue(allSigs[i], allGeoMats[i]);
     }
     return toReturn;
 }
 
+
+
+// Defines chi-squared computation for two vectors of floats.
+// When the expected value is zero, just set to slightly
+// greater than zero so that you don't throw nan but still
+// get a very large penalty
+float chiSqr(vector <float> expect, vector <float> observed) {
+    assert (expect.size() == observed.size());
+    float mySum = 0.;
+    for (int i = 0; i < (int)expect.size(); i++) {
+        if (expect[i] == 0) {
+            expect[i] += 0.00001;
+        }
+        mySum += pow(expect[i] - observed[i], 2) / expect[i];
+    }
+    return mySum;
+}
+
+float chiSqr(vector <int> expect, vector <int> observed) {
+    assert (expect.size() == observed.size());
+    float mySum = 0.;
+    for (int i = 0; i < (int)expect.size(); i++) {
+        float e = (float)expect[i];
+        if (e == 0.) {
+            e += 0.00001;
+        }
+        mySum += pow(e - (float)observed[i], 2) / e;
+    }
+    return mySum;
+}
+
+
+
+
 float computeCost(vector <vector <float>> trial, vector <float> mySig, vector<vector <int>> geoMat, wireLayer myLayer) {
     float myCost = 0.;
+    assert (mySig.size() == trial[1].size());
 	//cout << "trying compute Cost\n";
     for (int i = 0; i < (int)mySig.size(); i++) {
         if (mySig[i] == 0.) {
-            mySig[i] += 0.0001;
+            mySig[i] += 0.00001;
         }
         myCost += pow(trial[1][i],2)/mySig[i]; //1000 prefactor works nicely
         // myCost += pow(trial[1][i], 2);
@@ -767,9 +1095,24 @@ float computeCost(vector <vector <float>> trial, vector <float> mySig, vector<ve
 	}
 	// cout << "computed packing component\n";
 
+    // Chi squared component on the number of cells actived per wire
+    // cout << "trial sizes [0] [1] " << trial[0].size() << "\t" << trial[1].size() << "\tGeomat sizes" << geoMat.size() << " " << geoMat[0].size() << endl;
+    vector <int> oCells = numCellPerWire(trial[0], geoMat);
+    vector <int> eCells;
+    for (int i = 0; i < (int)mySig.size(); i++) {
+        eCells.push_back((int)(mySig[i] / 10));
+    }
+    float cellCost = chiSqr(eCells, oCells);
+
+    myCost += cellCost;
+
     return myCost;
 }
 
+// A naive random iteration function to minimize the cost.
+// Repeats until 1000 trials have passed without the score improving
+// At each iteration, it generates a new random charge distribution
+// then computes the cost and tries to update the minimum cost distribution.
 vector <float> solveCharge(vector <float> mySig, vector <vector <int>> geoMat, wireLayer myLayer) {
     int tryCount = 0;
     float minCost = numeric_limits<float>::infinity();
@@ -797,12 +1140,25 @@ vector <vector <vector <float>>> randChargeDistrib_multi(vector <vector <float>>
 }
 
 float computeCostMulti(vector <vector <vector <float>>> allTrials, vector <vector <float>> allSigs, vector <vector <vector <int>>> allGeoMats, vector <wireLayer> allLayers) {
+    // cout << "All Trials sizes: " << allTrials.size() << "\t" << allTrials[0].size() << endl;
+    // cout << "Sigs sizes: " << allSigs.size() << "\t" << allSigs[0].size() << endl;
+    // cout << "geoMats sizes: " << allGeoMats.size() << "\t" << allGeoMats[0].size() << "\t" << allGeoMats[0][0].size() << endl;
+    // cout << "Layers size: " << allLayers.size() << endl;
+    assert(allTrials.size() == allSigs.size());
+    assert(allSigs.size() == allGeoMats.size());
+    assert(allGeoMats.size() == allLayers.size());
+
     float myCost = 0.;
     if (allTrials.empty()) {
         return myCost;
     }
     for (int i = 0; i < (int)allTrials.size(); i++) {
-        myCost += computeCost(allTrials[i], allSigs[i], allGeoMats[i], allLayers[i]);
+        if (allGeoMats[i].empty() || allSigs[i].empty() || allLayers[i].cells.empty()) {
+            continue;
+        }
+        else {
+            myCost += computeCost(allTrials[i], allSigs[i], allGeoMats[i], allLayers[i]);
+        }
     }
 
     for (int i = 0; i < (int)allTrials.size() - 1; i++) {
@@ -860,6 +1216,9 @@ vector <vector <float>> solveChargeMulti(vector <vector <float>> allSigs, vector
     }
     minCost = computeCostMulti(initDistrib, allSigs, allGeoMats, allLayers);
     while (tryCount < 1000) {
+        if (tryCount % 50 == 0) {
+            cout << tryCount << endl;
+        }
         vector <vector <vector <float>>> allTrials = randChargeDistrib_multi(allSigs, allGeoMats, allLayers);
         float trialCost = computeCostMulti(allTrials, allSigs, allGeoMats, allLayers);
         if (trialCost < minCost) {
@@ -879,7 +1238,8 @@ vector <vector <float>> solveChargeMulti(vector <vector <float>> allSigs, vector
 
 
 
-
+// Given a charge distribution, creates a new one by mutating the given
+// one with some mutation frequency. Does not allow negative charges.
 vector <vector <float>> mutateCharge(vector <vector <float>> myTrial, vector <vector <int>> geoMat) {
     vector <vector <float>> mutated = myTrial;
     for (int i = 0; i < (int) myTrial[0].size(); i++) {
@@ -901,7 +1261,16 @@ vector <vector <float>> mutateCharge(vector <vector <float>> myTrial, vector <ve
     return mutated;
 }
 
+vector <vector <vector <float>>> mutateChargeMulti(vector <vector <vector <float>>> myTrial, vector <vector <vector <int>>> allGeoMats) {
+    vector <vector <vector <float>>> mutated;
+    for (int i = 0; i < (int)myTrial.size(); i++) {
+        mutated.push_back(mutateCharge(myTrial[i], allGeoMats[i]));
+    }
+    return mutated;
+}
 
+// Takes a vector of charges on cells, as well as the wire layer and geomatrix
+// Uses these to construct a vector of "remaining charge" for each wire
 vector <float> charge2remain(vector <float> myCharge, vector <float> mySig, vector <vector <int>> geoMat, wireLayer myLayer) {
     vector <float> remain = mySig;
     for (int i = 0; i < (int)myCharge.size(); i++) {
@@ -918,36 +1287,110 @@ vector <float> charge2remain(vector <float> myCharge, vector <float> mySig, vect
 }
 
 
-vector <vector <vector <float>>> mutateChargeMulti(vector <vector <vector <float>>> myTrial, vector <vector <vector <int>>> allGeoMats) {
-    vector <vector <vector <float>>> mutated;
-    for (int i = 0; i < (int)myTrial.size(); i++) {
-        mutated.push_back(mutateCharge(myTrial[i], allGeoMats[i]));
+vector <vector <float>> charge2remain(vector <vector <float>> allCharge, vector <vector <float>> allSig, vector <vector <vector <int>>> allGeoMat, vector <wireLayer> allLayers) {
+    vector <vector <float>> remain;
+    for (int i = 0; i < (int)allSig.size(); i++) {
+        remain.push_back(charge2remain(allCharge[i], allSig[i], allGeoMat[i], allLayers[i]));
     }
-    return mutated;
+    return remain;
+}
+
+vector <vector <float>> zip1D(vector <float> a, vector <float> b) {
+    assert(a.size() == b.size());
+    vector <vector <float>> toRet;
+    for (int i = 0; i < (int)a.size(); i++) {
+        vector <float> temp;
+        temp.push_back(a[i]);
+        temp.push_back(b[i]);
+        toRet.push_back(temp);
+    }
+    return toRet;
+}
+
+vector <vector <Path>> zip1D(vector <Path> a, vector <Path> b) {
+    assert(a.size() == b.size());
+    vector <vector <Path>> toRet;
+    for (int i = 0; i < (int)a.size(); i++) {
+        vector <Path> temp;
+        temp.push_back(a[i]);
+        temp.push_back(b[i]);
+        toRet.push_back(temp);
+    }
+    return toRet;
+}
+
+vector <vector <vector <float>>> zip2D(vector <vector <float>> a, vector <vector <float>> b) {
+    assert(a.size() == b.size());
+    vector <vector <vector <float>>> toRet;
+    for (int i = 0; i < (int)a.size(); i++) {
+        vector <vector <float>> temp;
+        temp.push_back(a[i]);
+        temp.push_back(b[i]);
+        toRet.push_back(temp);
+    }
+    return toRet;
 }
 
 
+// Randomly select a region in the charge vector to swap between the two
+// solutions. Modify the remain vectors appropriately and then return
+// the crossover reslts.
 vector <vector <vector <float>>> crossoverCharge(vector <float> mySig, vector <vector <float>> t1, vector <vector <float>> t2, vector <vector <int>> geoMat) {
+    assert (t1.size() == t2.size());
+    assert (t1[0].size() == t2[0].size());
+    if (t1[0].size() == 0) {
+        vector <vector <vector <float>>> toReturn;
+        toReturn.push_back(t1);
+        toReturn.push_back(t2);
+        return toReturn;
+    }
     int startPosn = rand() % t1[0].size();
     int endPosn = (rand() % (t1[0].size() - startPosn)) + startPosn;
     for (int i = startPosn; i <= endPosn; i++) {
-        float temp = t1[0][i];
-        t1[0][i] = t2[0][i];
-        t2[0][i] = temp;
-    }
-    vector <float> r1 = mySig;
-    vector <float> r2 = mySig;
-    for (int i = 0; i < (int)mySig.size(); i++) {
-        for (int j = 0; j < (int)t1[0].size(); j++) {
-            if (geoMat[i][j] == 1) {
-                r1[i] -= t1[0][j];
-                r2[i] -= t2[0][j];
+        float diff = t1[0][i] - t2[0][i];
+        t2[0][i] += diff;
+        t1[0][i] -= diff;
+        for (int j = 0; j < (int)geoMat.size(); j++) {
+            if (geoMat[j][i] == 1) {
+                t1[1][j] -= diff;
+                t2[1][j] += diff;
             }
         }
     }
-    t1[1] = r1;
-    t2[1] = r2;
+
+
+
+    //
+    // vector <float> r1 = mySig;
+    // vector <float> r2 = mySig;
+    // for (int i = 0; i < (int)mySig.size(); i++) {
+    //     for (int j = 0; j < (int)t1[0].size(); j++) {
+    //         if (geoMat[i][j] == 1) {
+    //             r1[i] -= t1[0][j];
+    //             r2[i] -= t2[0][j];
+    //         }
+    //     }
+    // }
+    // t1[1] = r1;
+    // t2[1] = r2;
     vector <vector <vector <float>>> toReturn;
+    toReturn.push_back(t1);
+    toReturn.push_back(t2);
+    return toReturn;
+}
+
+vector <vector <vector <vector <float>>>> crossoverChargeMulti(vector <vector <float>> allSigs, vector <vector <vector <float>>> t1, vector <vector <vector <float>>> t2, vector <vector <vector <int>>> allGeoMats) {
+    assert (t1.size() == t2.size());
+    assert (t1.size() == allSigs.size());
+    vector <vector <vector <float>>> t1_new;
+    vector <vector <vector <float>>> t2_new;
+    //vector <vector <vector <vector <float>>>> toReturn((int)allSigs.size());
+    for (int i = 0; i < (int)allSigs.size(); i++) {
+        vector <vector <vector <float>>> temp = crossoverCharge(allSigs[i], t1[i], t2[i], allGeoMats[i]);
+        t1_new.push_back(temp[0]);
+        t2_new.push_back(temp[1]);
+    }
+    vector <vector <vector <vector <float>>>> toReturn;
     toReturn.push_back(t1);
     toReturn.push_back(t2);
     return toReturn;
@@ -980,7 +1423,7 @@ vector <float> solveCharge_genetic(vector <float> mySig, vector <vector <int>> g
         return a.second < b.second;
     });
     genePool.clear();
-    for (int i = 0; i < 40; i++) {
+    for (int i = 0; i < min(40, (int)allPairs.size()); i++) {
         genePool.insert(allPairs[i]);
     }
 
@@ -1010,7 +1453,7 @@ vector <float> solveCharge_genetic(vector <float> mySig, vector <vector <int>> g
             return a.second < b.second;
         });
         genePool.clear();
-        for (int i = 0; i < 40; i++) {
+        for (int i = 0; i < min(40, (int)allPairs.size()); i++) {
             genePool.insert(allPairs[i]);
         }
         genCount++;
@@ -1043,7 +1486,7 @@ vector <vector <float>> solveChargeMulti_genetic(vector <vector <float>> allSigs
         return a.second < b.second;
     });
     genePool.clear();
-    for (int i = 0; i < 40; i++) {
+    for (int i = 0; i < min(40, (int)allPairs.size()); i++) {
         genePool.insert(allPairs[i]);
     }
 
@@ -1057,13 +1500,25 @@ vector <vector <float>> solveChargeMulti_genetic(vector <vector <float>> allSigs
                 float myCost = computeCostMulti(tempMutated, allSigs, allGeoMats, allLayers);
                 pair<vector <vector <vector <float>>>, float> tempPair = make_pair(tempMutated, myCost);
                 allPairs.push_back(tempPair);
+                map<vector<vector<vector<float>>>, float>::iterator k = genePool.begin();
+                for (int a = 0; a < (int)(rand() % genePool.size()); a++) {
+                    k++;
+                }
+                vector <vector <vector <vector <float>>>> tempCrossed = crossoverChargeMulti(allSigs, i->first, k->first, allGeoMats);
+                float c1 = computeCostMulti(tempCrossed[0], allSigs, allGeoMats, allLayers);
+                float c2 = computeCostMulti(tempCrossed[1], allSigs, allGeoMats, allLayers);
+                pair <vector <vector <vector <float>>>, float> p1 = make_pair(tempCrossed[0], c1);
+                pair <vector <vector <vector <float>>>, float> p2 = make_pair(tempCrossed[1], c2);
+                allPairs.push_back(p1);
+                allPairs.push_back(p2);
             }
         }
         sort(allPairs.begin(), allPairs.end(), [=](const pair<vector <vector<vector<float>>>, float>& a, const pair<vector <vector <vector <float>>>, float>& b) {
             return a.second < b.second;
         });
         genePool.clear();
-        for (int i = 0; i < 40; i++) {
+
+        for (int i = 0; i < min(40, (int)allPairs.size()); i++) {
             genePool.insert(allPairs[i]);
         }
         genCount++;
@@ -1085,6 +1540,10 @@ vector <vector <float>> solveChargeMulti_genetic(vector <vector <float>> allSigs
     return toReturn;
 }
 
+
+
+// Returns the average of the square difference between corresponding
+// elements in two equally sized float vectors
 float sumSqrDiff(vector <float> a, vector <float> b) {
     assert (a.size() == b.size());
     float mySum = 0.;
@@ -1094,6 +1553,7 @@ float sumSqrDiff(vector <float> a, vector <float> b) {
     return mySum / float(a.size());
 }
 
+// Sasme as the above, but defined for 2-D float vectors
 float sumSqrDiff(vector <vector <float>> a, vector <vector <float>> b) {
     assert(a.size() == b.size());
     float mySum = 0.;
@@ -1101,4 +1561,15 @@ float sumSqrDiff(vector <vector <float>> a, vector <vector <float>> b) {
         mySum += sumSqrDiff(a[i], b[i]);
     }
     return mySum / float(a.size());
+}
+
+
+vector <vector <int>> reduceGeoMatrix(vector <vector <int>> myGeoMat, vector <float> signals) {
+    vector <vector <int>> reduced;
+    for (int i = 0; i < (int)signals.size(); i++) {
+        if (signals[i] > 0.) {
+            reduced.push_back(myGeoMat[i]);
+        }
+    }
+    return reduced;
 }
