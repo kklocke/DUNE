@@ -5,7 +5,12 @@ from matplotlib.collections import PatchCollection
 
 import numpy as np
 
-f = open("cellTest_cells.txt")
+import seaborn as sns
+sns.set()
+
+
+# f = open("cellTest_cells.txt")
+f = open("toy_cells.txt")
 
 fig, ax = plt.subplots(2, 2)
 
@@ -121,29 +126,51 @@ for i in range(len(z1)):
 
 
 
-f = open('cellTest_path.txt')
+# f = open('cellTest_path.txt')
+f = open('toy_path.txt')
 
 lineCount = 0
 x = []
 y = []
 for line in f:
-    if (lineCount % 2 == 0):
-        for elem in line.strip().split():
-            x.append(float(elem))
-    else:
-        for elem in line.strip().split():
-            y.append(float(elem))
-        #plt.plot(x, y, marker='D', color='green')
-        ax[0, 0].plot(x, y, marker='D', color='green')
-        ax[0, 1].plot(x, y, marker='D', color='green')
-        ax[1, 0].plot(x, y, marker='D', color='green')
-        ax[1, 1].plot(x, y, marker='D', color='green')
+    line = line.strip()
+    if (len(line) == 0):
+        ax[0, 0].plot(x, y, marker='D', color='green', lw=3, markerfacecolor='cyan', ms=10)
+        ax[0, 1].plot(x, y, marker='D', color='green', lw=3, markerfacecolor='cyan', ms=10)
+        ax[1, 0].plot(x, y, marker='D', color='green', lw=3, markerfacecolor='cyan', ms=10)
+        ax[1, 1].plot(x, y, marker='D', color='green', lw=3, markerfacecolor='cyan', ms=10)
         x = []
         y = []
-    lineCount += 1
+    else:
+        line = line.split()
+        x.append(float(line[0]))
+        y.append(float(line[1]))
+
+    # if (lineCount % 2 == 0):
+    #     for elem in line.strip().split():
+    #         x.append(float(elem))
+    # else:
+    #     for elem in line.strip().split():
+    #         y.append(float(elem))
+    #     #plt.plot(x, y, marker='D', color='green')
+    #     ax[0, 0].plot(x, y, marker='D', color='green', lw=3)
+    #     ax[0, 1].plot(x, y, marker='D', color='green', lw=3)
+    #     ax[1, 0].plot(x, y, marker='D', color='green', lw=3)
+    #     ax[1, 1].plot(x, y, marker='D', color='green', lw=3)
+    #     x = []
+    #     y = []
+    # lineCount += 1
 f.close()
 
-f = open('cellTest_wires.txt')
+ax[0, 0].plot(x, y, marker='D', color='green', lw=3, markerfacecolor='cyan', ms=10)
+ax[0, 1].plot(x, y, marker='D', color='green', lw=3, markerfacecolor='cyan', ms=10)
+ax[1, 0].plot(x, y, marker='D', color='green', lw=3, markerfacecolor='cyan', ms=10)
+ax[1, 1].plot(x, y, marker='D', color='green', lw=3, markerfacecolor='cyan', ms=10)
+x = []
+y = []
+
+# f = open('cellTest_wires.txt')
+f = open('toy_wires.txt')
 
 lineCount = 0
 x = []
@@ -172,14 +199,19 @@ f.close()
 f = open('cellTest_scores.txt')
 
 line = f.readline().strip().split()
+#line2 = f.readline().strip().split()
 
 f.close()
 
-t1 = "True Charge on Cells\nScore: " + line[0] + "     Color Scale: " + str(min1) + " to " +  str(max1)
-t2 = "Matrix Inversion\nScore: " + line[1] + "     Color Scale: " + str(min2) + " to " + str(max2)
-t3 = "Genetic Algorithm\nScore: " + line[2] + "     Color Scale: " + str(min3) + " to " +  str(max3)
-t4 = "Naive Randomization\nScore: " + line[3] + "     Color Scale: " + str(min4) + " to " +  str(max4)
+# t1 = "True Charge on Cells\nScore: " + line[0] + "   Cost: " + line2[0] + "      Color Scale: " + str(min1) + " to " +  str(max1)
+# t2 = "Matrix Inversion\nScore: " + line[1] + "   Cost: " + line2[1] + "     Color Scale: " + str(min2) + " to " + str(max2)
+# t3 = "Genetic Algorithm\nScore: " + line[2] + "   Cost: " + line2[2] + "     Color Scale: " + str(min3) + " to " +  str(max3)
+# t4 = "Naive Randomization\nScore: " + line[3] + "   Cost: " + line2[3] + "     Color Scale: " + str(min4) + " to " +  str(max4)
 
+t1 = "True Charge on Cells\nCost: " + line[0] + "      Color Scale: " + str(min1) + " to " +  str(max1)
+t2 = "Matrix Inversion\nCost: " + line[1] + "     Color Scale: " + str(min2) + " to " + str(max2)
+t3 = "Genetic Algorithm\nCost: " + line[2] + "     Color Scale: " + str(min3) + " to " +  str(max3)
+t4 = "Naive Randomization\nCost: " + line[3] + "     Color Scale: " + str(min4) + " to " +  str(max4)
 
 ax[0, 0].set_title(t1)
 ax[0, 1].set_title(t2)

@@ -240,20 +240,48 @@ int main (int argc, char *argv[]) {
 
 
 
+    vector <vector <float>> allRemGenetic = charge2remain(solvedCharges_genetic, allRedSigs, allRedGeoMats, allLayers);
+    vector <vector <vector <float>>> geneticBestTrial = zip2D(solvedCharges_genetic, allRemGenetic);
+    float costGenetic = computeCostMulti(geneticBestTrial, allRedSigs, allRedGeoMats, allLayers);
+
+    vector <vector <float>> allRemMonte = charge2remain(solvedCharges_monte, allRedSigs, allRedGeoMats, allLayers);
+    vector <vector <vector <float>>> monteBestTrial = zip2D(solvedCharges_monte, allRemMonte);
+    float costMonte = computeCostMulti(monteBestTrial, allRedSigs, allRedGeoMats, allLayers);
+
+    vector <vector <float>> allRemMatrix = charge2remain(solveTrue_matrix, allRedSigs, allRedGeoMats, allLayers);
+    vector <vector <vector <float>>> matrixTrial = zip2D(solveTrue_matrix, allRemMatrix);
+    float costMatrix = computeCostMulti(matrixTrial, allRedSigs, allRedGeoMats, allLayers);
+
+    vector <vector <float>> allRemActual = charge2remain(allActual, allRedSigs, allRedGeoMats, allLayers);
+    vector <vector <vector <float>>> actualTrial = zip2D(allActual, allRemActual);
+    float costActual = computeCostMulti(actualTrial, allRedSigs, allRedGeoMats, allLayers);
 
 
     // add in stuff for scoring later
 
-    // ofstream scoreFile;
-    // scoreFile.open("cellTest_scores.txt");
-    // scoreFile << sumSqrDiff(allActual, allActual) << " ";
-    // scoreFile << sumSqrDiff(solveTrue_matrix, allActual) << " ";
-    // scoreFile << sumSqrDiff(solvedCharges_genetic, allActual) << " ";
-    // scoreFile << sumSqrDiff(solvedCharges_monte, allActual) << "\n";
-    // scoreFile << costActual << " " << costMatrix << " " << costGenetic << " " << costMonte << "\n";
-    // scoreFile.close();
+    ofstream scoreFile;
+    scoreFile.open("cellTest_scores.txt");
+    // // scoreFile << sumSqrDiff(allActual, allActual) << " ";
+    // // scoreFile << sumSqrDiff(solveTrue_matrix, allActual) << " ";
+    // // scoreFile << sumSqrDiff(solvedCharges_genetic, allActual) << " ";
+    // // scoreFile << sumSqrDiff(solvedCharges_monte, allActual) << "\n";
+    scoreFile << costActual << " " << costMatrix << " " << costGenetic << " " << costMonte << "\n";
+    scoreFile.close();
 
 
+
+    cout << "True Solution Score: " << costActual;
+
+    int count = 0;
+    for (int i = 0; i < 100; i++) {
+        vector <vector <vector <float>>> mutatedTrial = mutateChargeMulti(actualTrial, allRedGeoMats);
+        float mutatedCost = computeCostMulti(mutatedTrial, allRedSigs, allRedGeoMats, allLayers);
+        if (mutatedCost > costActual) {
+            count++;
+        }
+    }
+
+    cout << "\nPercentage of time mutated is worse than true: " << count << endl;
 
 
     return 0;

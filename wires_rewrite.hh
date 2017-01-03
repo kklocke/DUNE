@@ -815,6 +815,7 @@ vector <float> path2true(vector <Path> allPaths, wireLayer myLayer) {
     Path defPath = Path();
 
     for (int k = 0; k < (int)allPaths.size(); k++) {
+        map <vector <int>, int> thisPathSeen;
         Path p = allPaths[k];
         if (p == defPath) {
             continue;
@@ -859,9 +860,13 @@ vector <float> path2true(vector <Path> allPaths, wireLayer myLayer) {
             myNums.push_back(rPlace);
             if (cellSeen.find(myNums) == cellSeen.end()) {
                 cellSeen[myNums] = 1;
+                thisPathSeen[myNums] = 1;
             }
             else {
-                cellSeen[myNums]++;
+                if (thisPathSeen.find(myNums) == thisPathSeen.end()) {
+                    thisPathSeen[myNums] = 1;
+                    cellSeen[myNums]++;
+                }
             }
             currentPt += step;
         }
