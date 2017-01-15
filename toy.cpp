@@ -212,8 +212,8 @@ int main (int argc, char *argv[]) {
     vector <vector <float>> solvedCharges_monte = solveChargeMulti(allRedSigs, allRedGeoMats, allLayers);
     cout << "Running solve charge genetic" << endl;
     vector <vector <float>> solvedCharges_genetic = solveChargeMulti_genetic(allRedSigs, allRedGeoMats, allLayers);
-    cout << "Running solve true multi" << endl;
-    vector <vector <float>> solveTrue_matrix = solveTrue_multi(allRedSigs, allRedGeoMats);
+    // cout << "Running solve true multi" << endl;
+    // vector <vector <float>> solveTrue_matrix = solveTrue_multi(allRedSigs, allRedGeoMats);
 
 
     ofstream cellFile;
@@ -225,7 +225,8 @@ int main (int argc, char *argv[]) {
             for (int k = 0; k < (int)allLayers[i].cells[j].vertices.size(); k++) {
                 cellFile << allLayers[i].cells[j].vertices[k].x << " " << allLayers[i].cells[j].vertices[k].y << " ";
             }
-            cellFile << "\n" << allActual[i][j] << " " << solveTrue_matrix[i][j] << " " << solvedCharges_genetic[i][j] << " " << solvedCharges_monte[i][j] << "\n";
+            cellFile << "\n" << allActual[i][j] << " " << 0 << " " << solvedCharges_genetic[i][j] << " " << solvedCharges_monte[i][j] << "\n";
+            // cellFile << "\n" << allActual[i][j] << " " << solveTrue_matrix[i][j] << " " << solvedCharges_genetic[i][j] << " " << solvedCharges_monte[i][j] << "\n";
         }
         for (auto j = allLayers[i].unambig.begin(); j != allLayers[i].unambig.end(); j++) {
             for (int k = 0; k < (int)j->first.vertices.size(); k++) {
@@ -238,6 +239,22 @@ int main (int argc, char *argv[]) {
     cellFile.close();
 
 
+    for (int i = 0; i < (int)allActual.size(); i++) {
+        float trueChargeTot = 0.;
+        for (int j = 0; j < (int)allActual[i].size(); j++) {
+            trueChargeTot += allActual[i][j];
+        }
+        cout << "True charge in layer " << i << ": " << trueChargeTot << endl;
+    }
+
+    for (int i = 0; i < (int)solvedCharges_monte.size(); i++) {
+        float monteChargeTot = 0.;
+        for (int j = 0; j < (int)solvedCharges_monte[i].size(); j++) {
+            monteChargeTot += solvedCharges_monte[i][j];
+        }
+        cout << "Monte charge in layer " << i << ": " << monteChargeTot << endl;
+    }
+
 
 
     vector <vector <float>> allRemGenetic = charge2remain(solvedCharges_genetic, allRedSigs, allRedGeoMats, allLayers);
@@ -248,9 +265,9 @@ int main (int argc, char *argv[]) {
     vector <vector <vector <float>>> monteBestTrial = zip2D(solvedCharges_monte, allRemMonte);
     float costMonte = computeCostMulti(monteBestTrial, allRedSigs, allRedGeoMats, allLayers);
 
-    vector <vector <float>> allRemMatrix = charge2remain(solveTrue_matrix, allRedSigs, allRedGeoMats, allLayers);
-    vector <vector <vector <float>>> matrixTrial = zip2D(solveTrue_matrix, allRemMatrix);
-    float costMatrix = computeCostMulti(matrixTrial, allRedSigs, allRedGeoMats, allLayers);
+    // vector <vector <float>> allRemMatrix = charge2remain(solveTrue_matrix, allRedSigs, allRedGeoMats, allLayers);
+    // vector <vector <vector <float>>> matrixTrial = zip2D(solveTrue_matrix, allRemMatrix);
+    // float costMatrix = computeCostMulti(matrixTrial, allRedSigs, allRedGeoMats, allLayers);
 
     vector <vector <float>> allRemActual = charge2remain(allActual, allRedSigs, allRedGeoMats, allLayers);
     vector <vector <vector <float>>> actualTrial = zip2D(allActual, allRemActual);
@@ -265,7 +282,8 @@ int main (int argc, char *argv[]) {
     // // scoreFile << sumSqrDiff(solveTrue_matrix, allActual) << " ";
     // // scoreFile << sumSqrDiff(solvedCharges_genetic, allActual) << " ";
     // // scoreFile << sumSqrDiff(solvedCharges_monte, allActual) << "\n";
-    scoreFile << costActual << " " << costMatrix << " " << costGenetic << " " << costMonte << "\n";
+    // scoreFile << costActual << " " << costMatrix << " " << costGenetic << " " << costMonte << "\n";
+    scoreFile << costActual << " " << 0 << " " << costGenetic << " " << costMonte << "\n";
     scoreFile.close();
 
 

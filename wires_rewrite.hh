@@ -995,6 +995,86 @@ vector <vector <float>> randChargeDistrib(vector <float> mySig, vector <vector <
 }
 
 
+/*
+ * Modified version of randChargeDistrib that satisfies charge preservation
+ */
+
+vector <vector <float>> randChargeDistrib_CP(vector <float> mySig, vector <vector <int>> geoMat, wireLayer myLayer) {
+    vector <float> remain = mySig;
+
+    // Handle the case where we have nothing to do (i.e. no cells/signal)
+    if (myLayer.cells.empty() || mySig.empty()) {
+        vector <vector <float>> toRet(2);
+        return toRet;
+    }
+
+    // Compute the total charge that we need to preserve
+    float totalCharge = 0.;
+    for (int i = 0; i < (int)mySig.size(); i++) {
+        totalCharge += mySig[i];
+    }
+    totalCharge /= 3.;
+
+    // Initialize charge vector to zeroes and determine a random
+    // order in which to look at each cell.
+    vector <float> myCharge ((int)geoMat[0].size(), 0.);
+    vector <int> myOrder((int)myLayer.cells.size(), 0);
+    for (int i = 0; i < (int)myOrder.size(); i++) {
+        myOrder[i] = i;
+    }
+    random_shuffle(myOrder.begin(), myOrder.end());
+
+    // Walk through the cells and place charge as you would normally
+    for (int i = 0; i < (int)myLayer.cells.size(); i++) {
+        vector <int> relevantWires;
+        for (int j = 0; j < (int)geoMat.size(); j++) {
+            if (geoMat[j][myOrder[i]] == 1) {
+                relevantWires.push_back(j);
+            }
+        }
+
+        // determine how much charge you are allowed to place
+        float minRem = totalCharge;
+        for (int j = 0; j < (int)relevantWires.size(); j++) {
+            minRem = min(minRem, remain[relevantWires[j]]);
+        }
+
+        myCharge[myOrder[i]] += minRem;
+        totalCharge -= minRem;
+
+        for (int j = 0; j < (int)relevantWires.size(); j++) {
+            remain[relevantWires[j]] -= minRem;
+        }
+
+
+        // just check that it is near zero
+        if (totalCharge < 0.1) {
+            break;
+        }
+    }
+
+    // check if there is any remaining charge and then place it randomly
+    while (totalCharge >= 0.1) {
+        // randomly select a cell
+        int randCellIndex = rand() % myCharge.size();
+
+        // find the relevant wires
+        for (int i = 0; i < (int)geoMat.size(); i++) {
+            if (geoMat[i][randCellIndex]) {
+                remain[i] -= 10.;
+            }
+        }
+        myCharge[randCellIndex] += 10;
+        totalCharge -= 10;
+    }
+
+    vector <vector <float>> toReturn(2);
+    toReturn[0] = myCharge;
+    toReturn[1] = remain;
+
+    return toReturn;
+}
+
 
 
 
@@ -1076,28 +1156,28 @@ float computeCost(vector <vector <float>> trial, vector <float> mySig, vector<ve
     }
 	//out << "computed the chi-squared\n";
 
-	for (int i = 0; i < (int)myLayer.cells.size(); i++) {
-		for (int j = i+1; j < (int)myLayer.cells.size(); j++) {
-            // for now just use the average values of the vertices
-            float x1 = 0.;
-            float x2 = 0.;
-            float y1 = 0.;
-            float y2 = 0.;
-            int s1 = myLayer.cells[i].vertices.size();
-            int s2 = myLayer.cells[j].vertices.size();
-            for (int k = 0; k < s1; k++) {
-                x1 += myLayer.cells[i].vertices[k].x / float(s1);
-                y1 += myLayer.cells[i].vertices[k].y / float(s1);
-            }
-            for (int k = 0; k < s2; k++) {
-                x2 += myLayer.cells[j].vertices[k].x / float(s2);
-                y2 += myLayer.cells[j].vertices[k].y / float(s2);
-            }
-			float xDiff = x1 - x2;
-			float yDiff = y1 - y2;
-			myCost -=  0.1 * trial[0][i] * trial[0][j] / (pow(xDiff,2) + pow(yDiff, 2));
-		}
-	}
+	// for (int i = 0; i < (int)myLayer.cells.size(); i++) {
+	// 	for (int j = i+1; j < (int)myLayer.cells.size(); j++) {
+    //         // for now just use the average values of the vertices
+    //         float x1 = 0.;
+    //         float x2 = 0.;
+    //         float y1 = 0.;
+    //         float y2 = 0.;
+    //         int s1 = myLayer.cells[i].vertices.size();
+    //         int s2 = myLayer.cells[j].vertices.size();
+    //         for (int k = 0; k < s1; k++) {
+    //             x1 += myLayer.cells[i].vertices[k].x / float(s1);
+    //             y1 += myLayer.cells[i].vertices[k].y / float(s1);
+    //         }
+    //         for (int k = 0; k < s2; k++) {
+    //             x2 += myLayer.cells[j].vertices[k].x / float(s2);
+    //             y2 += myLayer.cells[j].vertices[k].y / float(s2);
+    //         }
+	// 		float xDiff = x1 - x2;
+	// 		float yDiff = y1 - y2;
+	// 		myCost -=  0.1 * trial[0][i] * trial[0][j] / (pow(xDiff,2) + pow(yDiff, 2));
+	// 	}
+	// }
 	// cout << "computed packing component\n";
 
     // Chi squared component on the number of cells actived per wire
@@ -1123,7 +1203,8 @@ vector <float> solveCharge(vector <float> mySig, vector <vector <int>> geoMat, w
     float minCost = numeric_limits<float>::infinity();
     vector <float> bestDistrib ((int)geoMat[0].size(), -1.);
     while (tryCount < 1000) {
-		vector <vector <float>> myTrial = randChargeDistrib(mySig, geoMat, myLayer);
+		// vector <vector <float>> myTrial = randChargeDistrib(mySig, geoMat, myLayer);
+        vector <vector <float>> myTrial = randChargeDistrib_CP(mySig, geoMat, myLayer);
         float trialCost = computeCost(myTrial, mySig, geoMat, myLayer);
         if (trialCost < minCost) {
             minCost = trialCost;
@@ -1139,7 +1220,8 @@ vector <float> solveCharge(vector <float> mySig, vector <vector <int>> geoMat, w
 vector <vector <vector <float>>> randChargeDistrib_multi(vector <vector <float>> allSigs, vector <vector <vector <int>>> allGeoMats, vector <wireLayer> allLayers) {
     vector <vector <vector <float>>> allDistribs;
     for (int i = 0; i < (int)allSigs.size(); i++) {
-        allDistribs.push_back(randChargeDistrib(allSigs[i], allGeoMats[i], allLayers[i]));
+        // allDistribs.push_back(randChargeDistrib(allSigs[i], allGeoMats[i], allLayers[i]));
+        allDistribs.push_back(randChargeDistrib_CP(allSigs[i], allGeoMats[i], allLayers[i]));
     }
     return allDistribs;
 }
@@ -1166,46 +1248,46 @@ float computeCostMulti(vector <vector <vector <float>>> allTrials, vector <vecto
         }
     }
 
-    for (int i = 0; i < (int)allTrials.size() - 1; i++) {
-        if (allLayers[i].cells.empty()) {
-            continue;
-        }
-        for (int j = i+1; j < (int)allTrials.size(); j++) {
-            // Do the spacial computation between time slices
-            if (allLayers[j].cells.empty()) {
-                continue;
-            }
-            for (int a = 0; a < (int)allLayers[i].cells.size(); a++) {
-                if (allLayers[i].cells[a].vertices.empty()) {
-                    continue;
-                }
-                for (int b = 0; b < (int)allLayers[j].cells.size(); b++) {
-                    if (allLayers[j].cells[b].vertices.empty()) {
-                        continue;
-                    }
-                    float x1 = 0.;
-                    float x2 = 0.;
-                    float y1 = 0.;
-                    float y2 = 0.;
-                    int s1 = (int)allLayers[i].cells[a].vertices.size();
-                    int s2 = (int)allLayers[j].cells[b].vertices.size();
-                    for (int k = 0; k < s1; k++) {
-                        x1 += allLayers[i].cells[a].vertices[k].x / float(s1);
-                        y1 += allLayers[i].cells[a].vertices[k].y / float(s1);
-                    }
-                    for (int k = 0; k < s2; k++) {
-                        x2 += allLayers[j].cells[b].vertices[k].x / float(s2);
-                        y2 += allLayers[j].cells[b].vertices[k].y / float(s2);
-                    }
-                    float xDiff = x1 - x2;
-                    float yDiff = y1 - y2;
-                    if ((xDiff != 0.) || (yDiff != 0.)) {
-                        myCost -= 0.1 * allTrials[i][0][a] * allTrials[j][0][b] / (pow(xDiff, 2) + pow(yDiff, 2));
-                    }
-                }
-            }
-        }
-    }
+    // for (int i = 0; i < (int)allTrials.size() - 1; i++) {
+    //     if (allLayers[i].cells.empty()) {
+    //         continue;
+    //     }
+    //     for (int j = i+1; j < (int)allTrials.size(); j++) {
+    //         // Do the spacial computation between time slices
+    //         if (allLayers[j].cells.empty()) {
+    //             continue;
+    //         }
+    //         for (int a = 0; a < (int)allLayers[i].cells.size(); a++) {
+    //             if (allLayers[i].cells[a].vertices.empty()) {
+    //                 continue;
+    //             }
+    //             for (int b = 0; b < (int)allLayers[j].cells.size(); b++) {
+    //                 if (allLayers[j].cells[b].vertices.empty()) {
+    //                     continue;
+    //                 }
+    //                 float x1 = 0.;
+    //                 float x2 = 0.;
+    //                 float y1 = 0.;
+    //                 float y2 = 0.;
+    //                 int s1 = (int)allLayers[i].cells[a].vertices.size();
+    //                 int s2 = (int)allLayers[j].cells[b].vertices.size();
+    //                 for (int k = 0; k < s1; k++) {
+    //                     x1 += allLayers[i].cells[a].vertices[k].x / float(s1);
+    //                     y1 += allLayers[i].cells[a].vertices[k].y / float(s1);
+    //                 }
+    //                 for (int k = 0; k < s2; k++) {
+    //                     x2 += allLayers[j].cells[b].vertices[k].x / float(s2);
+    //                     y2 += allLayers[j].cells[b].vertices[k].y / float(s2);
+    //                 }
+    //                 float xDiff = x1 - x2;
+    //                 float yDiff = y1 - y2;
+    //                 if ((xDiff != 0.) || (yDiff != 0.)) {
+    //                     myCost -= 0.1 * allTrials[i][0][a] * allTrials[j][0][b] / (pow(xDiff, 2) + pow(yDiff, 2));
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
     return myCost;
 }
 
